@@ -24,9 +24,11 @@ export const toggleLike = async (id, isLike) => { const res = await axiosInstanc
 export const fetchClubs = async () => { const res = await axiosInstance.get('/clubs'); return res.data; };
 export const createClub = async (data) => { const res = await axiosInstance.post('/clubs', data); return res.data; };
 export const deleteClub = async (id) => { const res = await axiosInstance.delete(`/clubs/${id}`); return res.data; };
-export const toggleClubMembership = async (name, action) => { const res = await axiosInstance.post(`/clubs/${name}/membership`, { action }); return res.data; };
+export const toggleClubMembership = async (id, action) => { const res = await axiosInstance.post(`/clubs/${id}/membership`, { action }); return res.data; };
 export const fetchClubComments = async (id) => { const res = await axiosInstance.get(`/clubs/${id}/comments`); return res.data; };
 export const addClubComment = async (id, content) => { const res = await axiosInstance.post(`/clubs/${id}/comments`, { content }); return res.data; };
+export const updateClub = async (id, data) => { const res = await axiosInstance.put(`/clubs/${id}`, data); return res.data;
+};
 
 export const fetchFriends = async () => { const res = await axiosInstance.get('/friends'); return res.data; };
 export const fetchChats = async () => { const res = await axiosInstance.get('/chats'); return res.data; };
@@ -34,10 +36,15 @@ export const fetchMessages = async (chatId) => { const res = await axiosInstance
 export const sendMessage = async (chatId, text) => { const res = await axiosInstance.post(`/chats/${chatId}/messages`, { text }); return res.data; };
 
 export const handleError = (error) => {
-    if (error.response) alert(`Ошибка: ${error.response.data.message}`);
-    else alert('Сервер недоступен. Проверьте запуск Go.');
-};
+    console.error("🔴 Полный лог ошибки:", error);
 
+    if (error.response) {
+        const msg = error.response.data?.message || error.response.data || `Статус код: ${error.response.status}`;
+        alert(`Ошибка: ${msg}`);
+    } else {
+        alert('Сервер недоступен. Проверьте запуск Go.');
+    }
+};
 export const api = {
     get: (url, config) => axiosInstance.get(url, config),
     post: (url, data, config) => axiosInstance.post(url, data, config),
@@ -60,5 +67,6 @@ export const api = {
     deleteClub,
     toggleClubMembership,
     fetchClubComments,
-    addClubComment
+    addClubComment,
+    updateClub,
 };

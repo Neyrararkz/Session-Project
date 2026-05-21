@@ -29,7 +29,6 @@ export default function Feed() {
       await api.createPost({ title, content });
       setTitle('');
       setContent('');
-      alert('Пост опубликован!');
       loadFeed(); 
     } catch (err) {
       handleError(err);
@@ -60,7 +59,6 @@ export default function Feed() {
     try {
       await api.deletePost(postId);
       setPosts(posts.filter(p => p.id !== postId));
-      alert('Пост удален');
     } catch (err) {
       handleError(err);
     }
@@ -74,7 +72,7 @@ export default function Feed() {
         <form onSubmit={handleCreatePost}>
           <input 
             type="text" 
-            placeholder="Заголовок публикации..." 
+            placeholder="Заголовок" 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
@@ -82,7 +80,7 @@ export default function Feed() {
             style={{ marginBottom: '0.8rem' }}
           />
           <textarea 
-            placeholder="Что у вас нового? Расскажите студентам..." 
+            placeholder="Введите текст..." 
             value={content}
             onChange={(e) => setContent(e.target.value)}
             required
@@ -91,7 +89,7 @@ export default function Feed() {
             style={{ marginBottom: '1rem', resize: 'vertical', fontFamily: 'inherit' }}
           />
           <button type="submit" className="btn btn-success" style={{ width: '100%' }}>
-            Опубликовать в ленту
+            Опубликовать
           </button>
         </form>
       </div>

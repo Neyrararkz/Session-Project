@@ -119,23 +119,55 @@ func GetCurrentUser(c *gin.Context) {
 	}
 
 	var user models.User
-	query := `SELECT id, name, surname, email, student_group, course, direction, bio, clubs, role 
-              FROM users WHERE id = $1`
+
+	query := `
+		SELECT
+			id,
+			name,
+			surname,
+			email,
+			COALESCE(student_group, ''),
+			COALESCE(course, 0),
+			COALESCE(direction, ''),
+			COALESCE(bio, ''),
+			COALESCE(clubs, '{}'),
+			role
+		FROM users
+		WHERE id = $1
+	`
 
 	row := config.DB.QueryRow(query, userID)
-	err := row.Scan(&user.ID, &user.Name, &user.Surname, &user.Email, &user.Group, &user.Course, &user.Direction, &user.Bio, pq.Array(&user.Clubs), &user.Role)
+
+	err := row.Scan(
+		&user.ID,
+		&user.Name,
+		&user.Surname,
+		&user.Email,
+		&user.Group,
+		&user.Course,
+		&user.Direction,
+		&user.Bio,
+		pq.Array(&user.Clubs),
+		&user.Role,
+	)
 
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Пользователь не найден"})
 		return
-	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка базы данных"})
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Ошибка базы данных",
+			"error":   err.Error(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"user": user})
+	c.JSON(http.StatusOK, gin.H{
+		"user": user,
+	})
 }
-
 
 func GetPosts(c *gin.Context) {
 	currentUserID, _ := c.Get("userID")
@@ -278,6 +310,55 @@ func CreateClub(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Клуб успешно создан!"})
 }
 
+func UpdateClub(c *gin.Context) {
+	id := c.Param("id")
+
+	var input models.UpdateClubInput
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest,
+			gin.H{"message": "Некорректные данные"})
+		return
+	}
+
+	query := `
+		UPDATE clubs
+		SET
+			name=$1,
+			description=$2,
+			meeting_time=$3,
+			contacts=$4
+		WHERE id=$5
+	`
+
+	result, err := config.DB.Exec(
+		query,
+		input.Name,
+		input.Description,
+		input.MeetingTime,
+		input.Contacts,
+		id,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError,
+			gin.H{"message": "Не удалось обновить клуб"})
+		return
+	}
+
+	rows, _ := result.RowsAffected()
+
+	if rows == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": "Клуб не найден",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK,
+		gin.H{"message": "Клуб обновлен"})
+}
+
 func DeleteClub(c *gin.Context) {
 	id := c.Param("id")
 	_, err := config.DB.Exec(`DELETE FROM clubs WHERE id = $1`, id)
@@ -290,7 +371,7 @@ func DeleteClub(c *gin.Context) {
 
 func ToggleClubMembership(c *gin.Context) {
 	userID, _ := c.Get("userID")
-	clubName := c.Param("id")
+	clubID := c.Param("id")
 
 	var input models.ToggleClubInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -301,10 +382,10 @@ func ToggleClubMembership(c *gin.Context) {
 	var err error
 	if input.Action == "join" {
 		query := `UPDATE users SET clubs = array_append(COALESCE(clubs, '{}'), $1) WHERE id = $2 AND NOT ($1 = ANY(COALESCE(clubs, '{}')))`
-		_, err = config.DB.Exec(query, clubName, userID)
+		_, err = config.DB.Exec(query, clubID, userID)
 	} else if input.Action == "leave" {
 		query := `UPDATE users SET clubs = array_remove(clubs, $1) WHERE id = $2`
-		_, err = config.DB.Exec(query, clubName, userID)
+		_, err = config.DB.Exec(query, clubID, userID)
 	}
 
 	if err != nil {
@@ -428,3 +509,4 @@ func UpdateProfile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Профиль успешно обновлен!"})
 }
+

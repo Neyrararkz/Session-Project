@@ -6,7 +6,7 @@
 --     password VARCHAR(255) NOT NULL,
 --     student_group VARCHAR(50),
 --     course INT,
---     direction VARCHAR(150) NOT NULL,
+--     direction VARCHAR(150),
 --     bio TEXT DEFAULT '',
 --     clubs TEXT[] DEFAULT '{}',
 --     role VARCHAR(50) DEFAULT 'student'

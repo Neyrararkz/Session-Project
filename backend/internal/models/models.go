@@ -86,3 +86,10 @@ type ClubCommentInput struct {
 type ToggleClubInput struct {
 	Action string `json:"action"` 
 }
+
+type UpdateClubInput struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	MeetingTime string `json:"meeting_time"`
+	Contacts    string `json:"contacts"`
+}

@@ -46,6 +46,7 @@ func main() {
 			protected.POST("/clubs/:id/membership", handlers.ToggleClubMembership) 
 			protected.GET("/clubs/:id/comments", handlers.GetClubComments)
 			protected.POST("/clubs/:id/comments", handlers.AddClubComment)
+			protected.PUT("/clubs/:id", handlers.UpdateClub)
 
 			protected.GET("/chats", handlers.GetChats)
 			protected.GET("/chats/:id/messages", handlers.GetMessages)

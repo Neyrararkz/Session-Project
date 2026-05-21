@@ -51,15 +51,21 @@ export default function Profile() {
       <div className="card">
         <div className="profile-top-bar">
           <div>
-            <h2 className="profile-name">{user.name} {user.surname}</h2>
-            <p className="profile-dir">{user.direction}</p>
-            {user.student_group ? (
-              <p className="profile-sub">Группа: {user.student_group} | Курс: {user.course}</p>
-            ) : (
-              <p className="profile-sub">
-                {user.role === 'admin' ? 'Администратор' : 'Преподаватель'}
-              </p>
+            <h2 className="profile-name">
+              {user.name} {user.surname}
+            </h2>
+            {user.role !== 'admin' && (
+              <p className="profile-dir">{user.direction}</p>
             )}
+            {user.role === 'student' ? (
+              <p className="profile-sub">
+                Группа: {user.group} | Курс: {user.course}
+              </p>
+            ) : user.role === 'teacher' ? (
+              <p className="profile-sub">Преподаватель</p>
+            ) : user.role === 'admin' ? (
+              <p className="profile-sub">Администратор</p>
+            ) : null}
           </div>
           <button 
             onClick={() => setIsEditing(!isEditing)} 
@@ -75,18 +81,27 @@ export default function Profile() {
               <h5 className="profile-section-heading">О себе</h5>
               <p className="profile-bio-text">{user.bio || 'Информация не заполнена'}</p>
             </div>
-            <div>
-              <h5 className="profile-section-heading">Студенческие клубы</h5>
-              <div className="badge-container">
-                {user.clubs && user.clubs.length > 0 ? (
-                  user.clubs.map((club, idx) => (
-                    <span key={idx} className="badge">{club}</span>
-                  ))
-                ) : (
-                  <p className="profile-empty-text">Не состоит в клубах</p>
-                )}
+            {user.role !== 'admin' && (
+              <div>
+                <h5 className="profile-section-heading">
+                  Студенческие клубы
+                </h5>
+
+                <div className="badge-container">
+                  {user.clubs && user.clubs.length > 0 ? (
+                    user.clubs.map((club, idx) => (
+                      <span key={idx} className="badge">
+                        {club}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="profile-empty-text">
+                      Не состоит в клубах
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         ) : (
           <form onSubmit={handleSaveProfile} className="profile-form">
