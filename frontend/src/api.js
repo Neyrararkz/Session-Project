@@ -1,47 +1,51 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api/v1';
+const API_BASE_URL = 'http://localhost:8080/api/v1';
 
 const axiosInstance = axios.create({
-  baseURL: API_URL,
-  headers: { 'Content-Type': 'application/json' },
+    baseURL: API_BASE_URL,
 });
 
 axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
+    const token = localStorage.getItem('token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
 });
 
+export const login = async (email, password) => { const res = await axiosInstance.post('/auth/login', { email, password }); return res.data; };
+export const register = async (userData) => { const res = await axiosInstance.post('/auth/register', userData); return res.data; };
+export const fetchPosts = async () => { const res = await axiosInstance.get('/posts'); return res.data; };
+export const createPost = async (postData) => { const res = await axiosInstance.post('/posts', postData); return res.data; };
+export const deletePost = async (id) => { const res = await axiosInstance.delete(`/posts/${id}`); return res.data; };
+export const toggleLike = async (id, isLike) => { const res = await axiosInstance.post(`/posts/${id}/like`, { isLike }); return res.data; }; 
+export const fetchClubs = async () => { const res = await axiosInstance.get('/clubs'); return res.data; };
+export const getCurrentUser = async () => { const res = await axiosInstance.get('/auth/me'); return res.data.user; };
+export const fetchFriends = async () => { const res = await axiosInstance.get('/friends'); return res.data; };
+export const fetchChats = async () => { const res = await axiosInstance.get('/chats'); return res.data; };
+export const fetchMessages = async (chatId) => { const res = await axiosInstance.get(`/chats/${chatId}/messages`); return res.data; };
+export const sendMessage = async (chatId, text) => { const res = await axiosInstance.post(`/chats/${chatId}/messages`, { text }); return res.data; };
+
+export const handleError = (error) => {
+    if (error.response) alert(`Ошибка: ${error.response.data.message}`);
+    else alert('Сервер недоступен. Проверьте запуск Go.');
+};
+
 export const api = {
-  login: async (data) => {
-    try { const res = await axiosInstance.post('/auth/login', data); return res.data; }
-    catch { return { token: 'mock-token-123', user: { id: 1, name: 'Алина', surname: 'Серикова', email: data.email, group: 'SE-2302', course: 3, direction: 'Software Engineering', bio: 'Учусь на разработчика, люблю чистый код.', clubs: ['IT Club', 'Design'], role: 'admin' } }; }
-  },
-  register: async (data) => {
-    try { const res = await axiosInstance.post('/auth/register', data); return res.data; }
-    catch { return { success: true }; }
-  },
-  getMe: async () => {
-    try { const res = await axiosInstance.get('/auth/me'); return res.data; }
-    catch { return { user: { id: 1, name: 'Алина', surname: 'Серикова', group: 'SE-2302', course: 3, direction: 'Software Engineering', bio: 'Учусь на разработчика.', clubs: ['IT Club'], role: 'admin' } }; }
-  },
-  getPosts: async () => {
-    try { const res = await axiosInstance.get('/posts'); return res.data; }
-    catch { return [
-      { id: 1, author: 'Иван Иванов', content: 'Привет всем! Кто поможет развернуть Docker контейнер?', likes: 4, comments: [{id: 1, author: 'Аня', text: 'Посмотри официальный манифест на DockerHub.'}], date: '18.05.2026' },
-      { id: 2, author: 'Деканат ITSTEP', content: 'Напоминаю, финальный дедлайн загрузки репозиториев на сессию — эта пятница до 23:59.', likes: 25, comments: [], date: '17.05.2026' }
-    ]; }
-  },
-  createPost: async (post) => {
-    try { const res = await axiosInstance.post('/posts', post); return res.data; }
-    catch { return { id: Date.now(), author: 'Вы', content: post.content, likes: 0, comments: [], date: 'Сегодня' }; }
-  },
-  getClubs: async () => {
-    try { const res = await axiosInstance.get('/clubs'); return res.data; }
-    catch { return [
-      { id: 1, name: 'IT Step Dev Club', desc: 'Пишем компиляторы на Go, изучаем экосистему React.', schedule: 'Вт, Чт в 18:00', contacts: '@itstep_dev' },
-      { id: 2, name: 'CyberSport Community', desc: 'Организация внутренних чемпионатов академии.', schedule: 'Сб в 16:00', contacts: '@itstep_cyber' }
-    ]; }
-  }
+    get: (url, config) => axiosInstance.get(url, config),
+    post: (url, data, config) => axiosInstance.post(url, data, config),
+    put: (url, data, config) => axiosInstance.put(url, data, config),
+    delete: (url, config) => axiosInstance.delete(url, config),
+    
+    login, 
+    register, 
+    fetchPosts, 
+    createPost, 
+    deletePost, 
+    toggleLike, 
+    fetchClubs, 
+    getCurrentUser, 
+    fetchFriends, 
+    fetchChats, 
+    fetchMessages, 
+    sendMessage
 };

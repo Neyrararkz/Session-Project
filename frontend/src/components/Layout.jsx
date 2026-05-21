@@ -6,7 +6,7 @@ export const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (!user) return <>{children}</>;
+  if (!user) return <main className="main-content">{children}</main>;
 
   const menuItems = [
     { path: '/', label: '📰 Лента новостей' },
@@ -26,18 +26,15 @@ export const Layout = ({ children }) => {
       <aside className="sidebar">
         <div className="sidebar-logo">ITSTEP Social</div>
         <nav className="sidebar-nav">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link 
-                key={item.path} 
-                to={item.path} 
-                className={`nav-link ${isActive ? 'nav-link-active' : ''}`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+          {menuItems.map((item) => (
+            <Link 
+              key={item.path} 
+              to={item.path} 
+              className={`nav-link ${location.pathname === item.path ? 'nav-link-active' : ''}`}
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
         <button onClick={() => { logout(); navigate('/login'); }} className="btn btn-danger">
           Выйти из аккаунта
