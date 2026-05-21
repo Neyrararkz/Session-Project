@@ -14,12 +14,20 @@ axiosInstance.interceptors.request.use((config) => {
 
 export const login = async (email, password) => { const res = await axiosInstance.post('/auth/login', { email, password }); return res.data; };
 export const register = async (userData) => { const res = await axiosInstance.post('/auth/register', userData); return res.data; };
+export const getCurrentUser = async () => { const res = await axiosInstance.get('/auth/me'); return res.data.user; };
+
 export const fetchPosts = async () => { const res = await axiosInstance.get('/posts'); return res.data; };
 export const createPost = async (postData) => { const res = await axiosInstance.post('/posts', postData); return res.data; };
 export const deletePost = async (id) => { const res = await axiosInstance.delete(`/posts/${id}`); return res.data; };
 export const toggleLike = async (id, isLike) => { const res = await axiosInstance.post(`/posts/${id}/like`, { isLike }); return res.data; }; 
+
 export const fetchClubs = async () => { const res = await axiosInstance.get('/clubs'); return res.data; };
-export const getCurrentUser = async () => { const res = await axiosInstance.get('/auth/me'); return res.data.user; };
+export const createClub = async (data) => { const res = await axiosInstance.post('/clubs', data); return res.data; };
+export const deleteClub = async (id) => { const res = await axiosInstance.delete(`/clubs/${id}`); return res.data; };
+export const toggleClubMembership = async (name, action) => { const res = await axiosInstance.post(`/clubs/${name}/membership`, { action }); return res.data; };
+export const fetchClubComments = async (id) => { const res = await axiosInstance.get(`/clubs/${id}/comments`); return res.data; };
+export const addClubComment = async (id, content) => { const res = await axiosInstance.post(`/clubs/${id}/comments`, { content }); return res.data; };
+
 export const fetchFriends = async () => { const res = await axiosInstance.get('/friends'); return res.data; };
 export const fetchChats = async () => { const res = await axiosInstance.get('/chats'); return res.data; };
 export const fetchMessages = async (chatId) => { const res = await axiosInstance.get(`/chats/${chatId}/messages`); return res.data; };
@@ -47,5 +55,10 @@ export const api = {
     fetchFriends, 
     fetchChats, 
     fetchMessages, 
-    sendMessage
+    sendMessage,
+    createClub,
+    deleteClub,
+    toggleClubMembership,
+    fetchClubComments,
+    addClubComment
 };

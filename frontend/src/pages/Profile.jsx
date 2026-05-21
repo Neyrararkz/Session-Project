@@ -53,7 +53,13 @@ export default function Profile() {
           <div>
             <h2 className="profile-name">{user.name} {user.surname}</h2>
             <p className="profile-dir">{user.direction}</p>
-            <p className="profile-sub">Группа: {user.group} | Курс: {user.course}</p>
+            {user.student_group ? (
+              <p className="profile-sub">Группа: {user.student_group} | Курс: {user.course}</p>
+            ) : (
+              <p className="profile-sub">
+                {user.role === 'admin' ? 'Администратор' : 'Преподаватель'}
+              </p>
+            )}
           </div>
           <button 
             onClick={() => setIsEditing(!isEditing)} 

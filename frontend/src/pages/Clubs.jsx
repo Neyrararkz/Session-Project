@@ -1,39 +1,201 @@
 import { useState, useEffect } from 'react';
-import { api } from '../api';
+import { api, handleError } from '../api';
 
 export default function Clubs() {
+  const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
-  const [joined, setJoined] = useState([]);
+  const [view, setView] = useState('list'); // 'list' | 'detail'
+  const [selectedClub, setSelectedClub] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
 
-  useEffect(() => { api.getClubs().then(setClubs); }, []);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newClub, setNewClub] = useState({ name: '', description: '', meeting_time: '', contacts: '' });
 
-  const toggleJoin = (id) => {
-    setJoined(prev => prev.includes(id) ? prev.filter(cId => cId !== id) : [...prev, id]);
+  const loadData = async () => {
+    try {
+      const userData = await api.getCurrentUser();
+      setUser(userData);
+      const clubsData = await api.fetchClubs();
+      setClubs(clubsData || []);
+    } catch (err) {
+      handleError(err);
+    }
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleCreateClub = async (e) => {
+    e.preventDefault();
+    try {
+      await api.createClub(newClub);
+      setShowCreateForm(false);
+      setNewClub({ name: '', description: '', meeting_time: '', contacts: '' });
+      loadData();
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const handleDeleteClub = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm('Точно удалить клуб?')) return;
+    try {
+      await api.deleteClub(id);
+      loadData();
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const handleToggleMembership = async (e, clubName, currentAction) => {
+    e.stopPropagation();
+    try {
+      await api.toggleClubMembership(clubName, currentAction);
+      loadData(); 
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const openClubDetails = async (club) => {
+    setSelectedClub(club);
+    setView('detail');
+    try {
+      const coms = await api.fetchClubComments(club.id);
+      setComments(coms || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+    try {
+      await api.addClubComment(selectedClub.id, newComment);
+      setNewComment('');
+      const coms = await api.fetchClubComments(selectedClub.id);
+      setComments(coms || []);
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  if (!user) return <div className="empty-state">Загрузка...</div>;
+
+  const userClubs = user.clubs || [];
+  const isAdmin = user.role === 'admin';
+
+  if (view === 'detail' && selectedClub) {
+    const isMember = userClubs.includes(selectedClub.name);
+    
+    return (
+      <div>
+        <button onClick={() => setView('list')} className="btn btn-inline btn-secondary" style={{ marginBottom: '1.5rem' }}>
+          ← Назад к списку
+        </button>
+        
+        <div className="card">
+          <div className="flex-between" style={{ marginBottom: '1rem' }}>
+            <h2 className="page-title" style={{ margin: 0 }}>{selectedClub.name}</h2>
+            <button 
+              onClick={(e) => handleToggleMembership(e, selectedClub.name, isMember ? 'leave' : 'join')}
+              className={`btn btn-inline ${isMember ? 'btn-danger' : 'btn-primary'}`}
+            >
+              {isMember ? 'Выйти из клуба' : 'Вступить в клуб'}
+            </button>
+          </div>
+          <p className="card-desc"><strong>Время встреч:</strong> {selectedClub.meeting_time}</p>
+          <p className="card-desc"><strong>Контакты:</strong> {selectedClub.contacts}</p>
+          <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '1.5rem 0' }} />
+          <h4 className="section-title">О клубе</h4>
+          <p className="post-content">{selectedClub.description}</p>
+        </div>
+
+        <div className="card">
+          <h4 className="section-title">Обсуждение</h4>
+          <div className="comment-section" style={{ borderTop: 'none', marginTop: 0 }}>
+            {comments.length === 0 ? (
+              <p className="empty-state">Комментариев пока нет. Напишите первым!</p>
+            ) : (
+              comments.map(c => (
+                <div key={c.id} className="comment-item" style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: 'var(--bg-gray)', borderRadius: '0.5rem' }}>
+                  <div className="post-author" style={{ fontSize: '0.95rem' }}>{c.user_name} <span className="post-date">{new Date(c.created_at).toLocaleDateString()}</span></div>
+                  <div style={{ marginTop: '0.5rem', color: 'var(--text-main)' }}>{c.content}</div>
+                </div>
+              ))
+            )}
+          </div>
+          <form onSubmit={handleAddComment} className="comment-form" style={{ marginTop: '1.5rem' }}>
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="Написать комментарий..." 
+              value={newComment} 
+              onChange={e => setNewComment(e.target.value)} 
+            />
+            <button type="submit" className="btn btn-inline btn-success">Отправить</button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
-      <h1 className="page-title">Студенческие объединения</h1>
+      <div className="flex-between" style={{ marginBottom: '2rem' }}>
+        <h2 className="page-title" style={{ margin: 0 }}>Студенческие клубы</h2>
+        {isAdmin && (
+          <button onClick={() => setShowCreateForm(!showCreateForm)} className="btn btn-inline btn-primary">
+            {showCreateForm ? 'Отменить' : '+ Создать клуб'}
+          </button>
+        )}
+      </div>
+
+      {isAdmin && showCreateForm && (
+        <form onSubmit={handleCreateClub} className="card">
+          <h4 className="section-title">Новый клуб</h4>
+          <div className="form-group">
+            <input className="form-input" placeholder="Название клуба" required value={newClub.name} onChange={e => setNewClub({...newClub, name: e.target.value})} />
+          </div>
+          <div className="form-group">
+            <textarea className="form-input" rows="3" placeholder="Описание" required value={newClub.description} onChange={e => setNewClub({...newClub, description: e.target.value})} />
+          </div>
+          <div className="form-group-row">
+            <input className="form-input" placeholder="Время встреч (напр. Пт 18:00)" value={newClub.meeting_time} onChange={e => setNewClub({...newClub, meeting_time: e.target.value})} />
+            <input className="form-input" placeholder="Контакты (Telegram, Кабинет)" value={newClub.contacts} onChange={e => setNewClub({...newClub, contacts: e.target.value})} />
+          </div>
+          <button type="submit" className="btn btn-success">Опубликовать</button>
+        </form>
+      )}
+
       <div className="grid-300">
         {clubs.map(club => {
-          const isMember = joined.includes(club.id);
+          const isMember = userClubs.includes(club.name);
           return (
-            <div key={club.id} className="card flex-column-between" style={{ margin: 0 }}>
+            <div key={club.id} className="card flex-column-between" style={{ cursor: 'pointer', transition: 'transform 0.2s' }} onClick={() => openClubDetails(club)}>
               <div>
                 <h3 className="card-title">{club.name}</h3>
-                <p className="card-desc">{club.desc}</p>
-                <div className="card-meta">🕒 <strong>Встречи:</strong> {club.schedule}</div>
-                <div className="card-meta" style={{ marginBottom: '1.5rem' }}>📞 <strong>Контакты:</strong> {club.contacts}</div>
+                <p className="card-meta">Время: {club.meeting_time}</p>
+                <p className="card-desc" style={{ marginTop: '0.5rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  {club.description}
+                </p>
               </div>
-              <button 
-                onClick={() => toggleJoin(club.id)} 
-                className={`btn ${isMember ? 'btn-danger' : 'btn-primary'}`}
-              >
-                {isMember ? 'Покинуть сообщество' : 'Подать заявку / Вступить'}
-              </button>
+              <div className="flex-between" style={{ marginTop: '1rem' }}>
+                <span className={`badge ${isMember ? '' : 'bg-gray'}`} style={!isMember ? { backgroundColor: 'var(--bg-gray)', color: 'var(--text-muted)'} : {}}>
+                  {isMember ? 'Вы состоите' : 'Не состоите'}
+                </span>
+                {isAdmin && (
+                  <button onClick={(e) => handleDeleteClub(e, club.id)} className="btn-icon btn-icon-danger">Удалить</button>
+                )}
+              </div>
             </div>
           );
         })}
+        {clubs.length === 0 && <p className="empty-state">Нет доступных клубов.</p>}
       </div>
     </div>
   );

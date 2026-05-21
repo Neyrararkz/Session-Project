@@ -55,3 +55,34 @@ type UpdateProfileInput struct {
 	Bio   string   `json:"bio"`
 	Clubs []string `json:"clubs"`
 }
+
+type Club struct {
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	MeetingTime string `json:"meeting_time"`
+	Contacts    string `json:"contacts"`
+}
+
+type ClubComment struct {
+	ID        int    `json:"id"`
+	ClubID    int    `json:"club_id"`
+	UserName  string `json:"user_name"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
+}
+
+type CreateClubInput struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	MeetingTime string `json:"meeting_time"`
+	Contacts    string `json:"contacts"`
+}
+
+type ClubCommentInput struct {
+	Content string `json:"content"`
+}
+
+type ToggleClubInput struct {
+	Action string `json:"action"` 
+}

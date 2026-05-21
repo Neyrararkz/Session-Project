@@ -16,7 +16,7 @@ import (
 func Register(c *gin.Context) {
 	var input models.RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Неверно заполнены поля регистрации"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Заполните все обязательные поля корректно"})
 		return
 	}
 
@@ -27,15 +27,24 @@ func Register(c *gin.Context) {
 	}
 
 	query := `INSERT INTO users (name, surname, email, password, student_group, course, direction, role) 
-              VALUES ($1, $2, $3, $4, $5, $6, $7, 'student')`
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, 'student')`
 
-	_, err = config.DB.Exec(query, input.Name, input.Surname, input.Email, string(hashedPassword), input.Group, input.Course, input.Direction)
+	_, err = config.DB.Exec(query, 
+		input.Name, 
+		input.Surname, 
+		input.Email, 
+		string(hashedPassword), 
+		input.Group, 
+		input.Course, 
+		input.Direction,
+	)
+
 	if err != nil {
 		c.JSON(http.StatusConflict, gin.H{"message": "Пользователь с таким Email уже существует"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Регистрация успешна!"})
+	c.JSON(http.StatusCreated, gin.H{"message": "Регистрация успешна! Теперь вы можете войти."})
 }
 
 func Login(c *gin.Context) {
@@ -48,11 +57,33 @@ func Login(c *gin.Context) {
 	var user models.User
 	var hashedPassword string
 
-	query := `SELECT id, name, surname, email, password, student_group, course, direction, bio, clubs, role 
-              FROM users WHERE email = $1`
+	query := `
+		SELECT id, name, surname, email, password, 
+		       COALESCE(student_group, ''), 
+		       COALESCE(course, 0),
+		       COALESCE(direction, ''),
+		       COALESCE(bio, ''),
+		       COALESCE(clubs, '{}'),
+		       role
+		FROM users 
+		WHERE email = $1
+	`
 
 	row := config.DB.QueryRow(query, input.Email)
-	err := row.Scan(&user.ID, &user.Name, &user.Surname, &user.Email, &hashedPassword, &user.Group, &user.Course, &user.Direction, &user.Bio, pq.Array(&user.Clubs), &user.Role)
+	
+	err := row.Scan(
+		&user.ID, 
+		&user.Name, 
+		&user.Surname, 
+		&user.Email, 
+		&hashedPassword, 
+		&user.Group, 
+		&user.Course, 
+		&user.Direction, 
+		&user.Bio, 
+		pq.Array(&user.Clubs), 
+		&user.Role,
+	)
 
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Неверный Email или пароль"})
@@ -213,7 +244,116 @@ func ToggleLike(c *gin.Context) {
 
 
 func GetClubs(c *gin.Context) {
-	c.JSON(http.StatusOK, []gin.H{})
+	rows, err := config.DB.Query(`SELECT id, name, description, meeting_time, contacts FROM clubs ORDER BY id DESC`)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка сервера при получении клубов"})
+		return
+	}
+	defer rows.Close()
+
+	clubs := []models.Club{}
+	for rows.Next() {
+		var club models.Club
+		if err := rows.Scan(&club.ID, &club.Name, &club.Description, &club.MeetingTime, &club.Contacts); err != nil {
+			continue
+		}
+		clubs = append(clubs, club)
+	}
+	c.JSON(http.StatusOK, clubs)
+}
+
+func CreateClub(c *gin.Context) {
+	var input models.CreateClubInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Заполните все поля"})
+		return
+	}
+
+	query := `INSERT INTO clubs (name, description, meeting_time, contacts) VALUES ($1, $2, $3, $4)`
+	_, err := config.DB.Exec(query, input.Name, input.Description, input.MeetingTime, input.Contacts)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось создать клуб"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"message": "Клуб успешно создан!"})
+}
+
+func DeleteClub(c *gin.Context) {
+	id := c.Param("id")
+	_, err := config.DB.Exec(`DELETE FROM clubs WHERE id = $1`, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления клуба"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Клуб удален"})
+}
+
+func ToggleClubMembership(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	clubName := c.Param("id")
+
+	var input models.ToggleClubInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректный запрос"})
+		return
+	}
+
+	var err error
+	if input.Action == "join" {
+		query := `UPDATE users SET clubs = array_append(COALESCE(clubs, '{}'), $1) WHERE id = $2 AND NOT ($1 = ANY(COALESCE(clubs, '{}')))`
+		_, err = config.DB.Exec(query, clubName, userID)
+	} else if input.Action == "leave" {
+		query := `UPDATE users SET clubs = array_remove(clubs, $1) WHERE id = $2`
+		_, err = config.DB.Exec(query, clubName, userID)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка при изменении статуса участия"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Статус обновлен"})
+}
+
+func GetClubComments(c *gin.Context) {
+	clubID := c.Param("id")
+	query := `
+		SELECT c.id, c.club_id, u.name, c.content, c.created_at 
+		FROM club_comments c JOIN users u ON c.user_id = u.id 
+		WHERE c.club_id = $1 ORDER BY c.created_at ASC`
+
+	rows, err := config.DB.Query(query, clubID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка загрузки комментариев"})
+		return
+	}
+	defer rows.Close()
+
+	comments := []models.ClubComment{}
+	for rows.Next() {
+		var com models.ClubComment
+		if err := rows.Scan(&com.ID, &com.ClubID, &com.UserName, &com.Content, &com.CreatedAt); err == nil {
+			comments = append(comments, com)
+		}
+	}
+	c.JSON(http.StatusOK, comments)
+}
+
+func AddClubComment(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	clubID := c.Param("id")
+
+	var input models.ClubCommentInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Пустой комментарий"})
+		return
+	}
+
+	_, err := config.DB.Exec(`INSERT INTO club_comments (club_id, user_id, content) VALUES ($1, $2, $3)`, clubID, userID, input.Content)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось добавить комментарий"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"message": "Комментарий добавлен"})
 }
 
 func GetChats(c *gin.Context) {
