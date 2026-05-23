@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api, handleError } from '../api';
 import Avatar from '../components/Avatar';
 
@@ -159,7 +160,7 @@ export default function Clubs() {
   const getRepliesFor = (parentId) => comments.filter(c => c.parent_id === parentId);
 
   if (view === 'detail' && selectedClub) {
-    const isMember = userClubs.includes(selectedClub.name);
+    const isMember = userClubs.includes(String(selectedClub.id));
     
     return (
       <div>
@@ -309,7 +310,9 @@ export default function Clubs() {
                     }}
                   >
                     <div style={{ display: 'flex', gap: '0.8rem' }}>
-                      <Avatar src={c.author_avatar} size="32px" />
+                      <Link to={`/profile/${c.user_id}`} style={{ textDecoration: 'none' }}>
+                        <Avatar src={c.author_avatar} size="32px" />
+                      </Link>
 
                       <div
                         style={{
@@ -327,15 +330,17 @@ export default function Clubs() {
                             marginBottom: '0.2rem'
                           }}
                         >
-                          <span
+                          <Link
+                            to={`/profile/${c.user_id}`}
                             style={{
                               fontWeight: '600',
                               fontSize: '0.85rem',
-                              color: '#2c3e50'
+                              color: '#2c3e50',
+                              textDecoration: 'none'
                             }}
                           >
                             {c.author_name} {c.author_surname}
-                          </span>
+                          </Link>
 
                           <span
                             style={{
@@ -390,7 +395,9 @@ export default function Clubs() {
                           paddingLeft: '0.8rem'
                         }}
                       >
-                        <Avatar src={reply.author_avatar} size="28px" />
+                        <Link to={`/profile/${reply.user_id}`} style={{ textDecoration: 'none' }}>
+                          <Avatar src={reply.author_avatar} size="28px" />
+                        </Link>
 
                         <div
                           style={{
@@ -408,15 +415,17 @@ export default function Clubs() {
                               marginBottom: '0.2rem'
                             }}
                           >
-                            <span
+                            <Link
+                              to={`/profile/${reply.user_id}`}
                               style={{
                                 fontWeight: '600',
                                 fontSize: '0.8rem',
-                                color: '#2c3e50'
+                                color: '#2c3e50',
+                                textDecoration: 'none'
                               }}
                             >
                               {reply.author_name} {reply.author_surname}
-                            </span>
+                            </Link>
 
                             <span
                               style={{
@@ -611,7 +620,7 @@ export default function Clubs() {
 
       <div className="grid-300">
         {clubs.map(club => {
-          const isMember = userClubs.includes(club.name);
+          const isMember = userClubs.includes(String(club.id));
           return (
             <div key={club.id} className="card flex-column-between" style={{ cursor: 'pointer', transition: 'transform 0.2s', padding: 0, overflow: 'hidden' }} onClick={() => openClubDetails(club)}>
               <div>

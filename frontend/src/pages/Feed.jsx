@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api, handleError } from '../api';
 import Avatar from '../components/Avatar';
  
@@ -68,17 +69,27 @@ function PostCard({ post, currentUserId, onDelete, onToggleLike, onCommentAdded 
     <div className="auth-card" style={{ padding: '1.5rem', position: 'relative' }}>
        
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+       <Link
+          to={`/profile/${post.user_id}`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.8rem',
+            textDecoration: 'none'
+          }}
+        >
           <Avatar src={post.author_avatar} size="40px" />
+
           <div>
             <span style={{ fontWeight: '600', color: '#2c3e50', display: 'block' }}>
               {post.author_name} {post.author_surname}
             </span>
+
             <span style={{ fontSize: '0.85rem', color: '#888' }}>
               {new Date(post.created_at).toLocaleDateString()}
             </span>
           </div>
-        </div>
+        </Link>
         
         {currentUserId === post.user_id && (
           <button 
@@ -135,10 +146,16 @@ function PostCard({ post, currentUserId, onDelete, onToggleLike, onCommentAdded 
               rootComments.map(c => (
                 <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                   <div style={{ display: 'flex', gap: '0.8rem' }}>
-                    <Avatar src={c.author_avatar} size="32px" />
+                    <Link to={`/profile/${c.user_id}`} style={{ textDecoration: 'none' }}>
+                      <Avatar src={c.author_avatar} size="32px" />
+                    </Link>
                     <div style={{ background: '#f8f9fa', padding: '0.6rem 1rem', borderRadius: '12px', flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.2rem' }}>
-                        <span style={{ fontWeight: '600', fontSize: '0.85rem', color: '#2c3e50' }}>{c.author_name} {c.author_surname}</span>
+                        <Link
+                          to={`/profile/${c.user_id}`}
+                          style={{ fontWeight: '600', fontSize: '0.85rem', color: '#2c3e50', textDecoration: 'none'}} >
+                          {c.author_name} {c.author_surname}
+                        </Link>
                         <span style={{ fontSize: '0.75rem', color: '#aaa' }}>{new Date(c.created_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <div style={{ fontSize: '0.9rem', color: '#333' }}>{c.content}</div>
@@ -154,10 +171,16 @@ function PostCard({ post, currentUserId, onDelete, onToggleLike, onCommentAdded 
  
                   {getRepliesFor(c.id).map(reply => (
                     <div key={reply.id} style={{ display: 'flex', gap: '0.8rem', marginLeft: '2.5rem', borderLeft: '2px solid #edf2f7', paddingLeft: '0.8rem' }}>
-                      <Avatar src={reply.author_avatar} size="28px" />
+                      <Link to={`/profile/${reply.user_id}`} style={{ textDecoration: 'none' }}>
+                        <Avatar src={reply.author_avatar} size="28px" />
+                      </Link>
                       <div style={{ background: '#f0f2f5', padding: '0.5rem 0.8rem', borderRadius: '12px', flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.2rem' }}>
-                          <span style={{ fontWeight: '600', fontSize: '0.8rem', color: '#2c3e50' }}>{reply.author_name} {reply.author_surname}</span>
+                          <Link
+                            to={`/profile/${reply.user_id}`}
+                            style={{ fontWeight: '600', fontSize: '0.8rem', color: '#2c3e50', textDecoration: 'none' }} >
+                            {reply.author_name} {reply.author_surname}
+                          </Link>
                           <span style={{ fontSize: '0.7rem', color: '#aaa' }}>{new Date(reply.created_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                         <div style={{ fontSize: '0.85rem', color: '#333' }}>{reply.content}</div>

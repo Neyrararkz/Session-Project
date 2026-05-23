@@ -36,6 +36,7 @@ func main() {
 		protected.Use(middleware.AuthRequired(cfg.JWTSecret))
 		{
 			protected.GET("/auth/me", handlers.GetCurrentUser)
+			protected.GET("/users/:id", handlers.GetUserByID)
 			
 			protected.POST("/upload", handlers.UploadImage)
 

@@ -167,6 +167,57 @@ func GetCurrentUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"user": user})
 }
 
+func GetUserByID(c *gin.Context) {
+	userID := c.Param("id")
+
+	var user models.User
+
+	query := `
+		SELECT
+			id,
+			name,
+			surname,
+			email,
+			COALESCE(student_group, ''),
+			COALESCE(course, 0),
+			COALESCE(direction, ''),
+			COALESCE(bio, ''),
+			COALESCE(clubs, '{}'),
+			COALESCE(avatar_url, ''),
+			role
+		FROM users
+		WHERE id = $1
+	`
+
+	row := config.DB.QueryRow(query, userID)
+
+	err := row.Scan(
+		&user.ID,
+		&user.Name,
+		&user.Surname,
+		&user.Email,
+		&user.Group,
+		&user.Course,
+		&user.Direction,
+		&user.Bio,
+		pq.Array(&user.Clubs),
+		&user.AvatarURL,
+		&user.Role,
+	)
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Пользователь не найден"})
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка базы данных", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": user})
+}
+
 func UpdateProfile(c *gin.Context) {
 	userID, _ := c.Get("userID")
 
@@ -220,7 +271,7 @@ func GetPosts(c *gin.Context) {
 		}
 		posts = append(posts, post)
 	}
-	
+
 	if posts == nil {
 		posts = []models.Post{}
 	}
@@ -229,7 +280,7 @@ func GetPosts(c *gin.Context) {
 
 func CreatePost(c *gin.Context) {
 	userID, _ := c.Get("userID")
-	
+
 	var input struct {
 		Title     string   `json:"title"`
 		Content   string   `json:"content"`
@@ -273,7 +324,7 @@ func DeletePost(c *gin.Context) {
 
 func GetPostComments(c *gin.Context) {
 	postID := c.Param("id")
-	
+
 	query := `
 		SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, c.parent_id,
 			   u.name, u.surname, COALESCE(u.avatar_url, '')
@@ -282,7 +333,7 @@ func GetPostComments(c *gin.Context) {
 		WHERE c.post_id = $1
 		ORDER BY c.created_at ASC
 	`
-	
+
 	rows, err := config.DB.Query(query, postID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения комментариев"})
@@ -301,7 +352,7 @@ func GetPostComments(c *gin.Context) {
 		}
 		comments = append(comments, comment)
 	}
-	
+
 	if comments == nil {
 		comments = []models.PostComment{}
 	}
@@ -311,7 +362,7 @@ func GetPostComments(c *gin.Context) {
 func AddPostComment(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	postID := c.Param("id")
-	
+
 	var input struct {
 		Content  string `json:"content" binding:"required"`
 		ParentID *int   `json:"parent_id"` // Может быть null
@@ -327,38 +378,58 @@ func AddPostComment(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось добавить комментарий"})
 		return
 	}
-	
+
 	c.JSON(http.StatusCreated, gin.H{"message": "Комментарий добавлен"})
 }
 
 func ToggleLike(c *gin.Context) {
-	userID, _ := c.Get("userID")
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Неавторизован"})
+		return
+	}
+
 	postID := c.Param("id")
 
-	var input struct {
-		Like bool `json:"like"`
-	}
+	var input models.LikeInput
+
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректные данные"})
 		return
 	}
 
-	if input.Like {
-		query := `INSERT INTO post_likes (user_id, post_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`
+	if input.IsLike {
+		query := `
+			INSERT INTO post_likes (user_id, post_id)
+			VALUES ($1, $2)
+			ON CONFLICT DO NOTHING
+		`
+
 		_, err := config.DB.Exec(query, userID, postID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось поставить лайк"})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "Не удалось поставить лайк",
+				"error":   err.Error(),
+			})
 			return
 		}
 	} else {
-		query := `DELETE FROM post_likes WHERE user_id = $1 AND post_id = $2`
+		query := `
+			DELETE FROM post_likes
+			WHERE user_id = $1 AND post_id = $2
+		`
+
 		_, err := config.DB.Exec(query, userID, postID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось снять лайк"})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "Не удалось снять лайк",
+				"error":   err.Error(),
+			})
 			return
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Успешно"})
+
+	c.JSON(http.StatusOK, gin.H{"message": "Статус лайка изменен"})
 }
 
 func GetClubs(c *gin.Context) {
