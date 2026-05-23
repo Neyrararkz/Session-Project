@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api, handleError } from '../api';
 import Avatar from '../components/Avatar';
+import PostCard from '../components/PostCard';
 
 export default function Profile() {
   const { id } = useParams();
@@ -10,6 +11,8 @@ export default function Profile() {
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [clubs, setClubs] = useState([]);
+  const [friends, setFriends] = useState([]);
+  const [friendshipStatus, setFriendshipStatus] = useState(null);
   const [bio, setBio] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -33,6 +36,17 @@ export default function Profile() {
 
       const clubsData = await api.fetchClubs();
       setClubs(clubsData || []);
+
+      const friendsData = await api.fetchUserFriends(profileUser.id);
+      setFriends(friendsData || []);
+
+      if (profileUser.id !== me.id) {
+        const statusData = await api.getFriendshipStatus(profileUser.id);
+        setFriendshipStatus(statusData);
+      } else {
+        setFriendshipStatus({ status: 'self', request_id: 0 });
+      }
+
     } catch (err) {
       handleError(err);
     }
@@ -79,11 +93,164 @@ export default function Profile() {
 
       setIsEditing(false);
       setAvatarFile(null);
+      window.dispatchEvent(new Event('profile-updated'));
       loadProfileData();
     } catch (err) {
       handleError(err);
     }
   };
+
+  const handleCommentAddedLocally = (postId) => {
+  setPosts(prevPosts => prevPosts.map(p => {
+    if (p.id === postId) {
+      return { ...p, comments_count: (p.comments_count || 0) + 1 };
+    }
+
+    return p;
+  }));
+};
+
+const handleToggleLike = async (postId, isLikedNow) => {
+  try {
+    await api.toggleLike(postId, !isLikedNow);
+
+    setPosts(posts.map(p => {
+      if (p.id === postId) {
+        return {
+          ...p,
+          is_liked: !isLikedNow,
+          likes_count: isLikedNow ? p.likes_count - 1 : p.likes_count + 1
+        };
+      }
+
+      return p;
+    }));
+  } catch (err) {
+    handleError(err);
+  }
+};
+
+const handleDeletePost = async (postId) => {
+  if (!window.confirm('Вы уверены, что хотите удалить этот пост?')) return;
+
+  try {
+    await api.deletePost(postId);
+    setPosts(posts.filter(p => p.id !== postId));
+  } catch (err) {
+    handleError(err);
+  }
+};
+
+const reloadFriendshipData = async () => {
+  if (!currentUser || !user) return;
+
+  const friendsData = await api.fetchUserFriends(user.id);
+  setFriends(friendsData || []);
+
+  if (currentUser.id !== user.id) {
+    const statusData = await api.getFriendshipStatus(user.id);
+    setFriendshipStatus(statusData);
+  }
+
+  window.dispatchEvent(new Event('friends-updated'));
+};
+
+const handleSendFriendRequest = async () => {
+  try {
+    await api.sendFriendRequest(user.id);
+    await reloadFriendshipData();
+  } catch (err) {
+    handleError(err);
+  }
+};
+
+const handleAcceptFriendRequest = async () => {
+  try {
+    await api.acceptFriendRequest(friendshipStatus.request_id);
+    await reloadFriendshipData();
+  } catch (err) {
+    handleError(err);
+  }
+};
+
+const handleCancelFriendRequest = async () => {
+  try {
+    await api.deleteFriendRequest(friendshipStatus.request_id);
+    await reloadFriendshipData();
+  } catch (err) {
+    handleError(err);
+  }
+};
+
+const handleRemoveFriend = async () => {
+  if (!window.confirm('Удалить пользователя из друзей?')) return;
+
+  try {
+    await api.removeFriend(user.id);
+    await reloadFriendshipData();
+  } catch (err) {
+    handleError(err);
+  }
+};
+
+const renderFriendshipButton = () => {
+  if (isOwnProfile || !friendshipStatus) return null;
+
+  if (friendshipStatus.status === 'none') {
+    return (
+      <button
+        className="btn btn-inline btn-primary"
+        onClick={handleSendFriendRequest}
+      >
+        Добавить в друзья
+      </button>
+    );
+  }
+
+  if (friendshipStatus.status === 'outgoing_pending') {
+    return (
+      <button
+        className="btn btn-inline btn-secondary"
+        onClick={handleCancelFriendRequest}
+      >
+        Отменить заявку
+      </button>
+    );
+  }
+
+  if (friendshipStatus.status === 'incoming_pending') {
+    return (
+      <div style={{ display: 'flex', gap: '0.6rem' }}>
+        <button
+          className="btn btn-inline btn-success"
+          onClick={handleAcceptFriendRequest}
+        >
+          Принять заявку
+        </button>
+
+        <button
+          className="btn btn-inline btn-secondary"
+          onClick={handleCancelFriendRequest}
+        >
+          Отклонить
+        </button>
+      </div>
+    );
+  }
+
+  if (friendshipStatus.status === 'friends') {
+    return (
+      <button
+        className="btn btn-inline btn-danger"
+        onClick={handleRemoveFriend}
+      >
+        Удалить из друзей
+      </button>
+    );
+  }
+
+  return null;
+};
 
   if (!user) return <div className="empty-state">Загрузка профиля...</div>;
 
@@ -118,14 +285,18 @@ export default function Profile() {
             </div>
           </div>
 
-          {isOwnProfile && (
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className={`btn btn-inline ${isEditing ? 'btn-secondary' : 'btn-primary'}`}
-            >
-              {isEditing ? 'Отмена' : 'Редактировать'}
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'center' }}>
+            {isOwnProfile ? (
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className={`btn btn-inline ${isEditing ? 'btn-secondary' : 'btn-primary'}`}
+              >
+                {isEditing ? 'Отмена' : 'Редактировать'}
+              </button>
+            ) : (
+              renderFriendshipButton()
+            )}
+          </div>
         </div>
 
         {!isEditing ? (
@@ -159,6 +330,61 @@ export default function Profile() {
                 )}
               </div>
             )}
+
+            <div>
+              <h5 className="profile-section-heading">Друзья ({friends.length})</h5>
+
+              {friends.length === 0 ? (
+                <p className="profile-empty-text">Список друзей пуст</p>
+              ) : (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: '0.8rem'
+                  }}
+                >
+                  {friends.map(friend => (
+                    <Link
+                      key={friend.id}
+                      to={`/profile/${friend.id}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.7rem',
+                        padding: '0.8rem',
+                        backgroundColor: 'var(--bg-gray)',
+                        borderRadius: '0.8rem',
+                        textDecoration: 'none',
+                        color: 'inherit'
+                      }}
+                    >
+                      <Avatar src={friend.avatar_url} size="36px" />
+
+                      <div>
+                        <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>
+                          {friend.name} {friend.surname}
+                        </div>
+
+                        {friend.role === 'student' ? (
+                          <div style={{ fontSize: '0.78rem', color: '#888' }}>
+                            {friend.group || 'Группа не указана'}
+                          </div>
+                        ) : friend.role === 'teacher' ? (
+                          <div style={{ fontSize: '0.78rem', color: '#888' }}>
+                            Преподаватель
+                          </div>
+                        ) : friend.role === 'admin' ? (
+                          <div style={{ fontSize: '0.78rem', color: '#888' }}>
+                            Администратор
+                          </div>
+                        ) : null}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSaveProfile} className="profile-form">
@@ -209,7 +435,7 @@ export default function Profile() {
                           className="btn btn-inline btn-danger"
                           onClick={() => handleRemoveClub(club)}
                         >
-                          Удалить
+                          Выйти
                         </button>
                       </div>
                     ))}
@@ -227,53 +453,24 @@ export default function Profile() {
 
       <div>
         <h3 className="profile-posts-heading">
-          {isOwnProfile ? 'Мои посты' : 'Посты пользователя'}
+          {isOwnProfile ? `Мои посты (${posts.length})` : `Посты пользователя (${posts.length})`}
         </h3>
 
         {posts.length === 0 ? (
           <p className="empty-state">Постов пока нет.</p>
         ) : (
-          posts.map((post) => (
-            <div key={post.id} className="card">
-              <div className="post-header">
-                <h4 className="card-title">{post.title}</h4>
-                <span className="post-date">
-                  {new Date(post.created_at).toLocaleDateString()}
-                </span>
-              </div>
-
-              <p className="post-content">{post.content}</p>
-
-              {post.image_urls && post.image_urls.length > 0 && (
-                <div style={{ marginTop: '1rem' }}>
-                  <img
-                    src={post.image_urls[0]}
-                    alt="post"
-                    style={{
-                      width: '100%',
-                      maxHeight: '350px',
-                      objectFit: 'contain',
-                      borderRadius: '0.7rem',
-                      backgroundColor: '#f8f9fa'
-                    }}
-                  />
-                </div>
-              )}
-
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '1rem',
-                  marginTop: '1rem',
-                  color: '#777',
-                  fontSize: '0.9rem'
-                }}
-              >
-                <span>❤️ {post.likes_count || 0}</span>
-                <span>💬 {post.comments_count || 0}</span>
-              </div>
-            </div>
-          ))
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {posts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                currentUserId={currentUser?.id}
+                onDelete={isOwnProfile ? handleDeletePost : null}
+                onToggleLike={handleToggleLike}
+                onCommentAdded={handleCommentAddedLocally}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>

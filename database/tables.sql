@@ -55,3 +55,18 @@
 --     parent_id INT REFERENCES club_comments(id) ON DELETE CASCADE
 -- );
 
+-- CREATE TABLE friendships (
+--     id SERIAL PRIMARY KEY,
+--     requester_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+--     receiver_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+--     status VARCHAR(20) NOT NULL DEFAULT 'pending',
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     CHECK (requester_id <> receiver_id),
+--     CHECK (status IN ('pending', 'accepted'))
+-- );
+
+-- CREATE UNIQUE INDEX unique_friendship_pair
+-- ON friendships (
+--     LEAST(requester_id, receiver_id),
+--     GREATEST(requester_id, receiver_id)
+-- );

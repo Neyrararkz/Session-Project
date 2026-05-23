@@ -8,6 +8,7 @@ export default function Clubs() {
   const [clubs, setClubs] = useState([]);
   const [view, setView] = useState('list'); 
   const [selectedClub, setSelectedClub] = useState(null);
+  const [members, setMembers] = useState([]);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState(null); 
@@ -101,13 +102,26 @@ export default function Clubs() {
     }
   };
 
-  const handleToggleMembership = async (e, clubName, currentAction) => {
+  const handleToggleMembership = async (e, clubId, currentAction) => {
     e.stopPropagation();
     try {
-      await api.toggleClubMembership(clubName, currentAction);
-      loadData(); 
+      await api.toggleClubMembership(clubId, currentAction);
+
+      const userData = await api.getCurrentUser();
+      setUser(userData);
+
+      await loadClubMembers(clubId);
     } catch (err) {
       handleError(err);
+    }
+  };
+
+  const loadClubMembers = async (clubId) => {
+    try {
+      const data = await api.fetchClubMembers(clubId);
+      setMembers(data || []);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -116,9 +130,14 @@ export default function Clubs() {
     setIsDetailEditing(false);
     setView('detail');
     setEditImageFile(null);
+    setReplyingTo(null);
+    setReplyText('');
+    setNewComment('');
+
     try {
       const coms = await api.fetchClubComments(club.id);
       setComments(coms || []);
+      await loadClubMembers(club.id);
     } catch (err) {
       console.error(err);
     }
@@ -276,6 +295,61 @@ export default function Clubs() {
             <p className="post-content">{selectedClub.description}</p>
           </div>
         )}
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <h4 className="section-title">Участники</h4>
+
+          {members.length === 0 ? (
+            <p className="empty-state">В клубе пока нет участников</p>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.8rem',
+                marginTop: '1rem'
+              }}
+            >
+              {members.map(member => (
+                <Link
+                  key={member.id}
+                  to={`/profile/${member.id}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.8rem',
+                    padding: '0.8rem 1rem',
+                    borderRadius: '0.8rem',
+                    backgroundColor: 'var(--bg-gray)',
+                    textDecoration: 'none',
+                    color: 'inherit'
+                  }}
+                >
+                  <Avatar src={member.avatar_url} size="38px" />
+
+                  <div>
+                    <div style={{ fontWeight: '600', color: '#2c3e50' }}>
+                      {member.name} {member.surname}
+                    </div>
+
+                    {member.role === 'student' ? (
+                      <div style={{ fontSize: '0.85rem', color: '#888' }}>
+                        {member.group || 'Группа не указана'} · {member.course || '—'} курс
+                      </div>
+                    ) : member.role === 'teacher' ? (
+                      <div style={{ fontSize: '0.85rem', color: '#888' }}>
+                        Преподаватель
+                      </div>
+                    ) : member.role === 'admin' ? (
+                      <div style={{ fontSize: '0.85rem', color: '#888' }}>
+                        Администратор
+                      </div>
+                    ) : null}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="card">
           <h4 className="section-title">Обсуждение</h4>

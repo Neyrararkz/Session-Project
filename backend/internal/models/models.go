@@ -119,3 +119,28 @@ type UpdateClubInput struct {
 	Contacts    string `json:"contacts"`
 	ImageURL    string `json:"image_url" db:"image_url"`
 }
+
+type FriendUser struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	Surname   string `json:"surname"`
+	Email     string `json:"email"`
+	Group     string `json:"group"`
+	Course    int    `json:"course"`
+	Direction string `json:"direction"`
+	Bio       string `json:"bio"`
+	AvatarURL string `json:"avatar_url"`
+	Role      string `json:"role"`
+}
+
+type FriendRequest struct {
+	ID        int    `json:"id"`
+	Status    string `json:"status"`
+	CreatedAt string `json:"created_at"`
+	User      FriendUser `json:"user"`
+}
+
+type FriendshipStatus struct {
+	Status    string `json:"status"`
+	RequestID int    `json:"request_id"`
+}

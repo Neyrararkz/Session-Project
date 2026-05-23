@@ -31,11 +31,21 @@ export const fetchClubs = async () => { const res = await axiosInstance.get('/cl
 export const createClub = async (data) => { const res = await axiosInstance.post('/clubs', data); return res.data; };
 export const deleteClub = async (id) => { const res = await axiosInstance.delete(`/clubs/${id}`); return res.data; };
 export const toggleClubMembership = async (id, action) => { const res = await axiosInstance.post(`/clubs/${id}/membership`, { action }); return res.data; };
+export const fetchClubMembers = async (id) => { const res = await axiosInstance.get(`/clubs/${id}/members`); return res.data; };
 export const fetchClubComments = async (id) => { const res = await axiosInstance.get(`/clubs/${id}/comments`); return res.data; };
 export const addClubComment = async (id, content, parentId = null) => { const res = await axiosInstance.post(`/clubs/${id}/comments`, { content, parent_id: parentId }); return res.data; };
 export const updateClub = async (id, data) => { const res = await axiosInstance.put(`/clubs/${id}`, data); return res.data; };
 
 export const fetchFriends = async () => { const res = await axiosInstance.get('/friends'); return res.data; };
+export const fetchUserFriends = async (id) => { const res = await axiosInstance.get(`/users/${id}/friends`); return res.data; };
+export const fetchIncomingFriendRequests = async () => { const res = await axiosInstance.get('/friends/requests/incoming'); return res.data; };
+export const fetchOutgoingFriendRequests = async () => { const res = await axiosInstance.get('/friends/requests/outgoing'); return res.data; };
+export const getFriendshipStatus = async (id) => { const res = await axiosInstance.get(`/friends/status/${id}`); return res.data; };
+export const sendFriendRequest = async (id) => { const res = await axiosInstance.post(`/friends/requests/${id}`); return res.data; };
+export const acceptFriendRequest = async (id) => { const res = await axiosInstance.put(`/friends/requests/${id}/accept`); return res.data; };
+export const deleteFriendRequest = async (id) => { const res = await axiosInstance.delete(`/friends/requests/${id}`); return res.data; };
+export const removeFriend = async (id) => { const res = await axiosInstance.delete(`/friends/${id}`); return res.data; };
+
 export const fetchChats = async () => { const res = await axiosInstance.get('/chats'); return res.data; };
 export const fetchMessages = async (chatId) => { const res = await axiosInstance.get(`/chats/${chatId}/messages`); return res.data; };
 export const sendMessage = async (chatId, text) => { const res = await axiosInstance.post(`/chats/${chatId}/messages`, { text }); return res.data; };
@@ -60,6 +70,7 @@ export const api = {
     
     login, 
     register, 
+    updateProfile,
     fetchPosts, 
     createPost, 
     deletePost, 
@@ -77,9 +88,17 @@ export const api = {
     createClub,
     deleteClub,
     toggleClubMembership,
+    fetchClubMembers,
     fetchClubComments,
     addClubComment,
     updateClub,
+    fetchUserFriends,
+    fetchIncomingFriendRequests,
+    fetchOutgoingFriendRequests,
+    getFriendshipStatus,
+    sendFriendRequest,
+    acceptFriendRequest,
+    deleteFriendRequest,
+    removeFriend,
     uploadImage,
-    updateProfile,
 };
