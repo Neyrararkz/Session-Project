@@ -187,58 +187,68 @@ func UpdateProfile(c *gin.Context) {
 }
 
 func GetPosts(c *gin.Context) {
-	currentUserID, _ := c.Get("userID")
+	userID, _ := c.Get("userID")
 
 	query := `
-		SELECT p.id, p.user_id, u.name, u.surname, p.title, p.content, p.created_at,
-			   (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
-			   EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) as is_liked
+		SELECT 
+			p.id, p.user_id, u.name, u.surname, COALESCE(u.avatar_url, ''), 
+			p.title, p.content, COALESCE(p.image_urls, '{}'), p.created_at,
+			(SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
+			EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) as is_liked,
+			(SELECT COUNT(*) FROM post_comments WHERE post_id = p.id) as comments_count
 		FROM posts p
 		JOIN users u ON p.user_id = u.id
-		ORDER BY p.created_at DESC`
+		ORDER BY p.created_at DESC
+	`
 
-	rows, err := config.DB.Query(query, currentUserID)
+	rows, err := config.DB.Query(query, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка при получении ленты постов"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения постов"})
 		return
 	}
 	defer rows.Close()
 
-	posts := []models.Post{}
+	var posts []models.Post
 	for rows.Next() {
-		var p models.Post
-		err := rows.Scan(&p.ID, &p.UserID, &p.AuthorName, &p.AuthorSurname, &p.Title, &p.Content, &p.CreatedAt, &p.LikesCount, &p.IsLiked)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обработки данных постов"})
-			return
+		var post models.Post
+		if err := rows.Scan(
+			&post.ID, &post.UserID, &post.AuthorName, &post.AuthorSurname, &post.AuthorAvatar,
+			&post.Title, &post.Content, pq.Array(&post.ImageURLs), &post.CreatedAt,
+			&post.LikesCount, &post.IsLiked, &post.CommentsCount,
+		); err != nil {
+			continue
 		}
-		posts = append(posts, p)
+		posts = append(posts, post)
 	}
-
+	
+	if posts == nil {
+		posts = []models.Post{}
+	}
 	c.JSON(http.StatusOK, posts)
 }
 
 func CreatePost(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Неавторизован"})
-		return
+	userID, _ := c.Get("userID")
+	
+	var input struct {
+		Title     string   `json:"title"`
+		Content   string   `json:"content"`
+		ImageURLs []string `json:"image_urls"`
 	}
 
-	var input models.CreatePostInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Заполните заголовок и текст поста"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректные данные"})
 		return
 	}
 
-	query := `INSERT INTO posts (user_id, title, content) VALUES ($1, $2, $3)`
-	_, err := config.DB.Exec(query, userID, input.Title, input.Content)
+	query := `INSERT INTO posts (user_id, title, content, image_urls) VALUES ($1, $2, $3, $4)`
+	_, err := config.DB.Exec(query, userID, input.Title, input.Content, pq.Array(input.ImageURLs))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось сохранить пост"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка при создании поста"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Пост успешно опубликован!"})
+	c.JSON(http.StatusCreated, gin.H{"message": "Пост создан!"})
 }
 
 func DeletePost(c *gin.Context) {
@@ -261,34 +271,94 @@ func DeletePost(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Пост успешно удален"})
 }
 
-func ToggleLike(c *gin.Context) {
-	userID, _ := c.Get("userID")
-	postIDStr := c.Param("id")
-	postID, _ := strconv.Atoi(postIDStr)
+func GetPostComments(c *gin.Context) {
+	postID := c.Param("id")
+	
+	query := `
+		SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, c.parent_id,
+			   u.name, u.surname, COALESCE(u.avatar_url, '')
+		FROM post_comments c
+		JOIN users u ON c.user_id = u.id
+		WHERE c.post_id = $1
+		ORDER BY c.created_at ASC
+	`
+	
+	rows, err := config.DB.Query(query, postID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка получения комментариев"})
+		return
+	}
+	defer rows.Close()
 
-	var input models.LikeInput
+	var comments []models.PostComment
+	for rows.Next() {
+		var comment models.PostComment
+		if err := rows.Scan(
+			&comment.ID, &comment.PostID, &comment.UserID, &comment.Content, &comment.CreatedAt, &comment.ParentID,
+			&comment.AuthorName, &comment.AuthorSurname, &comment.AuthorAvatar,
+		); err != nil {
+			continue
+		}
+		comments = append(comments, comment)
+	}
+	
+	if comments == nil {
+		comments = []models.PostComment{}
+	}
+	c.JSON(http.StatusOK, comments)
+}
+
+func AddPostComment(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	postID := c.Param("id")
+	
+	var input struct {
+		Content  string `json:"content" binding:"required"`
+		ParentID *int   `json:"parent_id"` // Может быть null
+	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректный запрос"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Комментарий не может быть пустым"})
 		return
 	}
 
-	if input.IsLike {
+	query := `INSERT INTO post_comments (post_id, user_id, content, parent_id) VALUES ($1, $2, $3, $4)`
+	_, err := config.DB.Exec(query, postID, userID, input.Content, input.ParentID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось добавить комментарий"})
+		return
+	}
+	
+	c.JSON(http.StatusCreated, gin.H{"message": "Комментарий добавлен"})
+}
+
+func ToggleLike(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	postID := c.Param("id")
+
+	var input struct {
+		Like bool `json:"like"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректные данные"})
+		return
+	}
+
+	if input.Like {
 		query := `INSERT INTO post_likes (user_id, post_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`
 		_, err := config.DB.Exec(query, userID, postID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка при установке лайка"})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось поставить лайк"})
 			return
 		}
 	} else {
 		query := `DELETE FROM post_likes WHERE user_id = $1 AND post_id = $2`
 		_, err := config.DB.Exec(query, userID, postID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка при снятии лайка"})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось снять лайк"})
 			return
 		}
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Статус лайка изменен"})
+	c.JSON(http.StatusOK, gin.H{"message": "Успешно"})
 }
 
 func GetClubs(c *gin.Context) {
@@ -410,43 +480,100 @@ func ToggleClubMembership(c *gin.Context) {
 
 func GetClubComments(c *gin.Context) {
 	clubID := c.Param("id")
+
 	query := `
-		SELECT c.id, c.club_id, u.name, c.content, c.created_at 
-		FROM club_comments c JOIN users u ON c.user_id = u.id 
-		WHERE c.club_id = $1 ORDER BY c.created_at ASC`
+		SELECT
+			c.id,
+			c.club_id,
+			c.user_id,
+			COALESCE(u.name, ''),
+			COALESCE(u.surname, ''),
+			COALESCE(u.avatar_url, ''),
+			c.content,
+			TO_CHAR(c.created_at, 'YYYY-MM-DD"T"HH24:MI:SS'),
+			c.parent_id
+		FROM club_comments c
+		JOIN users u ON c.user_id = u.id
+		WHERE c.club_id = $1
+		ORDER BY c.created_at ASC
+	`
 
 	rows, err := config.DB.Query(query, clubID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка загрузки комментариев"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Ошибка загрузки комментариев",
+			"error":   err.Error(),
+		})
 		return
 	}
 	defer rows.Close()
 
 	comments := []models.ClubComment{}
+
 	for rows.Next() {
-		var com models.ClubComment
-		if err := rows.Scan(&com.ID, &com.ClubID, &com.UserName, &com.Content, &com.CreatedAt); err == nil {
-			comments = append(comments, com)
+		var comment models.ClubComment
+
+		err := rows.Scan(
+			&comment.ID,
+			&comment.ClubID,
+			&comment.UserID,
+			&comment.AuthorName,
+			&comment.AuthorSurname,
+			&comment.AuthorAvatar,
+			&comment.Content,
+			&comment.CreatedAt,
+			&comment.ParentID,
+		)
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "Ошибка обработки комментариев",
+				"error":   err.Error(),
+			})
+			return
 		}
+
+		comments = append(comments, comment)
 	}
+
 	c.JSON(http.StatusOK, comments)
 }
 
 func AddClubComment(c *gin.Context) {
-	userID, _ := c.Get("userID")
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Неавторизован"})
+		return
+	}
+
 	clubID := c.Param("id")
 
 	var input models.ClubCommentInput
+
 	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректный комментарий"})
+		return
+	}
+
+	if input.Content == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Пустой комментарий"})
 		return
 	}
 
-	_, err := config.DB.Exec(`INSERT INTO club_comments (club_id, user_id, content) VALUES ($1, $2, $3)`, clubID, userID, input.Content)
+	query := `
+		INSERT INTO club_comments (club_id, user_id, content, parent_id)
+		VALUES ($1, $2, $3, $4)
+	`
+
+	_, err := config.DB.Exec(query, clubID, userID, input.Content, input.ParentID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось добавить комментарий"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Не удалось добавить комментарий",
+			"error":   err.Error(),
+		})
 		return
 	}
+
 	c.JSON(http.StatusCreated, gin.H{"message": "Комментарий добавлен"})
 }
 

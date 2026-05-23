@@ -9,8 +9,8 @@
 --     direction VARCHAR(150),
 --     bio TEXT DEFAULT '',
 --     clubs TEXT[] DEFAULT '{}',
+--     role VARCHAR(50) DEFAULT 'student',
 --     avatar_url VARCHAR(255) DEFAULT ''
---     role VARCHAR(50) DEFAULT 'student'
 -- );
 
 -- CREATE TABLE posts (
@@ -18,7 +18,17 @@
 --     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 --     title VARCHAR(255) NOT NULL,
 --     content TEXT NOT NULL,
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     image_urls TEXT[] DEFAULT '{}'
+-- );
+
+-- CREATE TABLE post_comments (
+--     id SERIAL PRIMARY KEY,
+--     post_id INT REFERENCES posts(id) ON DELETE CASCADE,
+--     user_id INT REFERENCES users(id) ON DELETE CASCADE,
+--     content TEXT NOT NULL,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     parent_id INT REFERENCES post_comments(id) ON DELETE CASCADE
 -- );
 
 -- CREATE TABLE post_likes (
@@ -41,6 +51,7 @@
 --     club_id INT REFERENCES clubs(id) ON DELETE CASCADE,
 --     user_id INT REFERENCES users(id) ON DELETE CASCADE,
 --     content TEXT NOT NULL,
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     parent_id INT REFERENCES club_comments(id) ON DELETE CASCADE
 -- );
 

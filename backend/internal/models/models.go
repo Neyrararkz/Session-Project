@@ -36,16 +36,32 @@ type Post struct {
 	UserID        int       `json:"user_id"`
 	AuthorName    string    `json:"author_name"`
 	AuthorSurname string    `json:"author_surname"`
+	AuthorAvatar  string    `json:"author_avatar"`
 	Title         string    `json:"title"`
 	Content       string    `json:"content"`
+	ImageURLs     []string  `json:"image_urls"`
 	CreatedAt     time.Time `json:"created_at"`
 	LikesCount    int       `json:"likes_count"`
 	IsLiked       bool      `json:"is_liked"`
+	CommentsCount int       `json:"comments_count"`
 }
 
 type CreatePostInput struct {
-	Title   string `json:"title" binding:"required"`
-	Content string `json:"content" binding:"required"`
+	Title     string   `json:"title" binding:"required"`
+	Content   string   `json:"content" binding:"required"`
+	ImageURLs []string `json:"image_urls"`
+}
+
+type PostComment struct {
+	ID            int    `json:"id"`
+	PostID        int    `json:"post_id"`
+	UserID        int    `json:"user_id"`
+	AuthorName    string `json:"author_name"`
+	AuthorSurname string `json:"author_surname"`
+	AuthorAvatar  string `json:"author_avatar"`
+	Content       string `json:"content"`
+	CreatedAt     string `json:"created_at"`
+	ParentID      *int   `json:"parent_id"`
 }
 
 type LikeInput struct {
@@ -53,9 +69,9 @@ type LikeInput struct {
 }
 
 type UpdateProfileInput struct {
-	Bio   string     `json:"bio"`
-	Clubs []string   `json:"clubs"`
-	AvatarURL string `json:"avatar_url"`
+	Bio       string   `json:"bio"`
+	Clubs     []string `json:"clubs"`
+	AvatarURL string   `json:"avatar_url"`
 }
 
 type Club struct {
@@ -68,11 +84,15 @@ type Club struct {
 }
 
 type ClubComment struct {
-	ID        int    `json:"id"`
-	ClubID    int    `json:"club_id"`
-	UserName  string `json:"user_name"`
-	Content   string `json:"content"`
-	CreatedAt string `json:"created_at"`
+	ID            int    `json:"id"`
+	ClubID        int    `json:"club_id"`
+	UserID        int    `json:"user_id"`
+	AuthorName    string `json:"author_name"`
+	AuthorSurname string `json:"author_surname"`
+	AuthorAvatar  string `json:"author_avatar"`
+	Content       string `json:"content"`
+	CreatedAt     string `json:"created_at"`
+	ParentID      *int   `json:"parent_id"`
 }
 
 type CreateClubInput struct {
@@ -85,6 +105,7 @@ type CreateClubInput struct {
 
 type ClubCommentInput struct {
 	Content string `json:"content"`
+	ParentID *int   `json:"parent_id"`
 }
 
 type ToggleClubInput struct {

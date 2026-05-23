@@ -21,6 +21,8 @@ export const uploadImage = async (file) => { const formData = new FormData(); fo
 export const fetchPosts = async () => { const res = await axiosInstance.get('/posts'); return res.data; };
 export const createPost = async (postData) => { const res = await axiosInstance.post('/posts', postData); return res.data; };
 export const deletePost = async (id) => { const res = await axiosInstance.delete(`/posts/${id}`); return res.data; };
+export const getPostComments = async (postId) => { const res = await axiosInstance.get(`/posts/${postId}/comments`); return res.data; };
+export const addPostComment = async (postId, content, parentId = null) => { const res = await axiosInstance.post(`/posts/${postId}/comments`, { content, parent_id: parentId }); return res.data; };
 export const toggleLike = async (id, isLike) => { const res = await axiosInstance.post(`/posts/${id}/like`, { isLike }); return res.data; }; 
 
 export const fetchClubs = async () => { const res = await axiosInstance.get('/clubs'); return res.data; };
@@ -28,7 +30,7 @@ export const createClub = async (data) => { const res = await axiosInstance.post
 export const deleteClub = async (id) => { const res = await axiosInstance.delete(`/clubs/${id}`); return res.data; };
 export const toggleClubMembership = async (id, action) => { const res = await axiosInstance.post(`/clubs/${id}/membership`, { action }); return res.data; };
 export const fetchClubComments = async (id) => { const res = await axiosInstance.get(`/clubs/${id}/comments`); return res.data; };
-export const addClubComment = async (id, content) => { const res = await axiosInstance.post(`/clubs/${id}/comments`, { content }); return res.data; };
+export const addClubComment = async (id, content, parentId = null) => { const res = await axiosInstance.post(`/clubs/${id}/comments`, { content, parent_id: parentId }); return res.data; };
 export const updateClub = async (id, data) => { const res = await axiosInstance.put(`/clubs/${id}`, data); return res.data; };
 
 export const fetchFriends = async () => { const res = await axiosInstance.get('/friends'); return res.data; };
@@ -39,7 +41,7 @@ export const sendMessage = async (chatId, text) => { const res = await axiosInst
 export const updateProfile = async (data) => { const res = await axiosInstance.put('/user/profile', data); return res.data; };
 
 export const handleError = (error) => {
-    console.error("🔴 Полный лог ошибки:", error);
+    console.error("Полный лог ошибки:", error);
 
     if (error.response) {
         const msg = error.response.data?.message || error.response.data || `Статус код: ${error.response.status}`;
@@ -59,6 +61,8 @@ export const api = {
     fetchPosts, 
     createPost, 
     deletePost, 
+    getPostComments,
+    addPostComment,
     toggleLike, 
     fetchClubs, 
     getCurrentUser, 

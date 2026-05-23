@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api, handleError } from '../api';
+import Avatar from '../components/Avatar';
 
 export default function Clubs() {
   const [user, setUser] = useState(null);
@@ -8,6 +9,8 @@ export default function Clubs() {
   const [selectedClub, setSelectedClub] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [replyingTo, setReplyingTo] = useState(null); 
+  const [replyText, setReplyText] = useState('');     
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newClub, setNewClub] = useState({ name: '', description: '', meeting_time: '', contacts: '', image_url: '' });
@@ -132,11 +135,28 @@ export default function Clubs() {
       handleError(err);
     }
   };
-
   if (!user) return <div className="empty-state">Загрузка...</div>;
+
+  const handleAddReply = async (e, parentId) => {
+    e.preventDefault();
+    if (!replyText.trim()) return;
+    try {
+      await api.addClubComment(selectedClub.id, replyText, parentId);
+      setReplyText('');
+      setReplyingTo(null); 
+      const coms = await api.fetchClubComments(selectedClub.id);
+      setComments(coms || []);
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
 
   const userClubs = user.clubs || [];
   const isAdmin = user.role === 'admin';
+
+  const rootComments = comments.filter(c => !c.parent_id);
+  const getRepliesFor = (parentId) => comments.filter(c => c.parent_id === parentId);
 
   if (view === 'detail' && selectedClub) {
     const isMember = userClubs.includes(selectedClub.name);
@@ -258,30 +278,295 @@ export default function Clubs() {
 
         <div className="card">
           <h4 className="section-title">Обсуждение</h4>
-          <div className="comment-section" style={{ borderTop: 'none', marginTop: 0 }}>
-            {comments.length === 0 ? (
-              <p className="empty-state">Комментариев пока нет</p>
-            ) : (
-              comments.map(c => (
-                <div key={c.id} className="comment-item" style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: 'var(--bg-gray)', borderRadius: '0.5rem' }}>
-                  <div className="post-author" style={{ fontSize: '0.95rem' }}>
-                    {c.user_name} <span className="post-date">{new Date(c.created_at).toLocaleDateString()}</span>
+
+          <div style={{ marginTop: '1.5rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.2rem',
+                marginBottom: '1.5rem'
+              }}
+            >
+              {rootComments.length === 0 ? (
+                <p
+                  style={{
+                    color: '#888',
+                    fontSize: '0.9rem',
+                    textAlign: 'center'
+                  }}
+                >
+                  Пока нет комментариев. Будьте первым!
+                </p>
+              ) : (
+                rootComments.map(c => (
+                  <div
+                    key={c.id}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.6rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '0.8rem' }}>
+                      <Avatar src={c.author_avatar} size="32px" />
+
+                      <div
+                        style={{
+                          background: '#f8f9fa',
+                          padding: '0.6rem 1rem',
+                          borderRadius: '12px',
+                          flex: 1
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'baseline',
+                            marginBottom: '0.2rem'
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontWeight: '600',
+                              fontSize: '0.85rem',
+                              color: '#2c3e50'
+                            }}
+                          >
+                            {c.author_name} {c.author_surname}
+                          </span>
+
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              color: '#aaa'
+                            }}
+                          >
+                            {new Date(c.created_at).toLocaleString('ru-RU', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize: '0.9rem',
+                            color: '#333'
+                          }}
+                        >
+                          {c.content}
+                        </div>
+
+                        <button
+                          onClick={() => setReplyingTo(replyingTo === c.id ? null : c.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#3498db',
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            marginTop: '0.4rem',
+                            padding: 0,
+                            fontWeight: '500'
+                          }}
+                        >
+                          Ответить
+                        </button>
+                      </div>
+                    </div>
+
+                    {getRepliesFor(c.id).map(reply => (
+                      <div
+                        key={reply.id}
+                        style={{
+                          display: 'flex',
+                          gap: '0.8rem',
+                          marginLeft: '2.5rem',
+                          borderLeft: '2px solid #edf2f7',
+                          paddingLeft: '0.8rem'
+                        }}
+                      >
+                        <Avatar src={reply.author_avatar} size="28px" />
+
+                        <div
+                          style={{
+                            background: '#f0f2f5',
+                            padding: '0.5rem 0.8rem',
+                            borderRadius: '12px',
+                            flex: 1
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'baseline',
+                              marginBottom: '0.2rem'
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontWeight: '600',
+                                fontSize: '0.8rem',
+                                color: '#2c3e50'
+                              }}
+                            >
+                              {reply.author_name} {reply.author_surname}
+                            </span>
+
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                color: '#aaa'
+                              }}
+                            >
+                              {new Date(reply.created_at).toLocaleString('ru-RU', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              fontSize: '0.85rem',
+                              color: '#333'
+                            }}
+                          >
+                            {reply.content}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {replyingTo === c.id && (
+                      <form
+                        onSubmit={(e) => handleAddReply(e, c.id)}
+                        style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                          marginLeft: '2.5rem',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <input
+                          type="text"
+                          placeholder={`Ответить ${c.author_name}...`}
+                          value={replyText}
+                          onChange={e => setReplyText(e.target.value)}
+                          className="form-input"
+                          style={{
+                            flex: 1,
+                            marginBottom: 0,
+                            padding: '0.5rem 0.8rem',
+                            borderRadius: '20px',
+                            fontSize: '0.85rem'
+                          }}
+                        />
+
+                        <button
+                          type="submit"
+                          disabled={!replyText.trim()}
+                          style={{
+                            background: replyText.trim() ? '#34495e' : '#dcdde1',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '32px',
+                            height: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: replyText.trim() ? 'pointer' : 'not-allowed',
+                            flexShrink: 0,
+                            padding: 0
+                          }}
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            style={{ marginLeft: '1px' }}
+                          >
+                            <path
+                              d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        </button>
+                      </form>
+                    )}
                   </div>
-                  <div style={{ marginTop: '0.5rem', color: 'var(--text-main)' }}>{c.content}</div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
+
+            <form
+              onSubmit={handleAddComment}
+              style={{
+                display: 'flex',
+                gap: '0.8rem',
+                alignItems: 'center'
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Написать комментарий..."
+                value={newComment}
+                onChange={e => setNewComment(e.target.value)}
+                className="form-input"
+                style={{
+                  flex: 1,
+                  marginBottom: 0,
+                  padding: '0.7rem 1rem',
+                  borderRadius: '20px',
+                  width: '100%'
+                }}
+              />
+
+              <button
+                type="submit"
+                disabled={!newComment.trim()}
+                style={{
+                  background: newComment.trim() ? '#4834d4' : '#dcdde1',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: newComment.trim() ? 'pointer' : 'not-allowed',
+                  flexShrink: 0,
+                  padding: 0,
+                  transition: 'background 0.2s ease'
+                }}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ marginLeft: '2px' }}
+                >
+                  <path
+                    d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </button>
+            </form>
           </div>
-          <form onSubmit={handleAddComment} className="comment-form" style={{ marginTop: '1.5rem' }}>
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="Добавить комментарий..." 
-              value={newComment} 
-              onChange={e => setNewComment(e.target.value)} 
-            />
-            <button type="submit" className="btn btn-inline btn-success">Отправить</button>
-          </form>
         </div>
       </div>
     );
