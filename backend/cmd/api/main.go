@@ -16,6 +16,8 @@ func main() {
 
 	r := gin.Default()
 
+	r.Static("/uploads", "./uploads")
+
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -35,6 +37,8 @@ func main() {
 		{
 			protected.GET("/auth/me", handlers.GetCurrentUser)
 			
+			protected.POST("/upload", handlers.UploadImage)
+
 			protected.GET("/posts", handlers.GetPosts)
 			protected.POST("/posts", handlers.CreatePost)
 			protected.DELETE("/posts/:id", handlers.DeletePost)
@@ -43,7 +47,7 @@ func main() {
 			protected.GET("/clubs", handlers.GetClubs)
 			protected.POST("/clubs", handlers.CreateClub)
 			protected.DELETE("/clubs/:id", handlers.DeleteClub)
-			protected.POST("/clubs/:id/membership", handlers.ToggleClubMembership) 
+			protected.POST("/clubs/:id/membership", handlers.ToggleClubMembership)
 			protected.GET("/clubs/:id/comments", handlers.GetClubComments)
 			protected.POST("/clubs/:id/comments", handlers.AddClubComment)
 			protected.PUT("/clubs/:id", handlers.UpdateClub)
@@ -54,7 +58,7 @@ func main() {
 
 			protected.GET("/users/:id/posts", handlers.GetUserPosts)
 			protected.GET("/user/posts", handlers.GetUserPosts)
-			protected.PUT("/user/profile", handlers.UpdateProfile)	
+			protected.PUT("/user/profile", handlers.UpdateProfile)
 		}
 	}
 

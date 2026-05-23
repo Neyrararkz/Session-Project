@@ -16,6 +16,8 @@ export const login = async (email, password) => { const res = await axiosInstanc
 export const register = async (userData) => { const res = await axiosInstance.post('/auth/register', userData); return res.data; };
 export const getCurrentUser = async () => { const res = await axiosInstance.get('/auth/me'); return res.data.user; };
 
+export const uploadImage = async (file) => { const formData = new FormData(); formData.append('image', file); const res = await axiosInstance.post('/upload', formData); return res.data.url; };
+
 export const fetchPosts = async () => { const res = await axiosInstance.get('/posts'); return res.data; };
 export const createPost = async (postData) => { const res = await axiosInstance.post('/posts', postData); return res.data; };
 export const deletePost = async (id) => { const res = await axiosInstance.delete(`/posts/${id}`); return res.data; };
@@ -27,13 +29,14 @@ export const deleteClub = async (id) => { const res = await axiosInstance.delete
 export const toggleClubMembership = async (id, action) => { const res = await axiosInstance.post(`/clubs/${id}/membership`, { action }); return res.data; };
 export const fetchClubComments = async (id) => { const res = await axiosInstance.get(`/clubs/${id}/comments`); return res.data; };
 export const addClubComment = async (id, content) => { const res = await axiosInstance.post(`/clubs/${id}/comments`, { content }); return res.data; };
-export const updateClub = async (id, data) => { const res = await axiosInstance.put(`/clubs/${id}`, data); return res.data;
-};
+export const updateClub = async (id, data) => { const res = await axiosInstance.put(`/clubs/${id}`, data); return res.data; };
 
 export const fetchFriends = async () => { const res = await axiosInstance.get('/friends'); return res.data; };
 export const fetchChats = async () => { const res = await axiosInstance.get('/chats'); return res.data; };
 export const fetchMessages = async (chatId) => { const res = await axiosInstance.get(`/chats/${chatId}/messages`); return res.data; };
 export const sendMessage = async (chatId, text) => { const res = await axiosInstance.post(`/chats/${chatId}/messages`, { text }); return res.data; };
+
+export const updateProfile = async (data) => { const res = await axiosInstance.put('/user/profile', data); return res.data; };
 
 export const handleError = (error) => {
     console.error("🔴 Полный лог ошибки:", error);
@@ -69,4 +72,6 @@ export const api = {
     fetchClubComments,
     addClubComment,
     updateClub,
+    uploadImage,
+    updateProfile,
 };

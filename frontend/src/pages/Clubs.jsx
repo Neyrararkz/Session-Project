@@ -10,8 +10,11 @@ export default function Clubs() {
   const [newComment, setNewComment] = useState('');
 
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newClub, setNewClub] = useState({ name: '', description: '', meeting_time: '', contacts: '' });
-  const [editClub, setEditClub] = useState({ name: '', description: '', meeting_time: '', contacts: '' });
+  const [newClub, setNewClub] = useState({ name: '', description: '', meeting_time: '', contacts: '', image_url: '' });
+  const [newImageFile, setNewImageFile] = useState(null);
+
+  const [editClub, setEditClub] = useState({ name: '', description: '', meeting_time: '', contacts: '', image_url: '' });
+  const [editImageFile, setEditImageFile] = useState(null);
   const [isDetailEditing, setIsDetailEditing] = useState(false);
 
   const loadData = async () => {
@@ -32,9 +35,18 @@ export default function Clubs() {
   const handleCreateClub = async (e) => {
     e.preventDefault();
     try {
-      await api.createClub(newClub);
+      let imageUrl = newClub.image_url;
+      
+      if (newImageFile) {
+        imageUrl = await api.uploadImage(newImageFile);
+      }
+
+      const clubToCreate = { ...newClub, image_url: imageUrl };
+      await api.createClub(clubToCreate);
+      
       setShowCreateForm(false);
-      setNewClub({ name: '', description: '', meeting_time: '', contacts: '' });
+      setNewClub({ name: '', description: '', meeting_time: '', contacts: '', image_url: '' });
+      setNewImageFile(null);
       loadData();
     } catch (err) {
       handleError(err);
@@ -44,14 +56,23 @@ export default function Clubs() {
   const handleUpdateClub = async (e) => {
     e.preventDefault();
     try {
-      await api.updateClub(selectedClub.id, editClub);
+      let imageUrl = editClub.image_url;
+
+      if (editImageFile) {
+        imageUrl = await api.uploadImage(editImageFile);
+      }
+
+      const clubToUpdate = { ...editClub, image_url: imageUrl };
+      await api.updateClub(selectedClub.id, clubToUpdate);
+      
       setIsDetailEditing(false);
+      setEditImageFile(null);
       await loadData();
 
       if (selectedClub) {
         setSelectedClub({
           ...selectedClub,
-          ...editClub
+          ...clubToUpdate
         });
       }
     } catch (err) {
@@ -88,8 +109,9 @@ export default function Clubs() {
 
   const openClubDetails = async (club) => {
     setSelectedClub(club);
-    setIsDetailEditing(false); 
+    setIsDetailEditing(false);
     setView('detail');
+    setEditImageFile(null);
     try {
       const coms = await api.fetchClubComments(club.id);
       setComments(coms || []);
@@ -144,6 +166,15 @@ export default function Clubs() {
               />
             </div>
             <div className="form-group">
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Обложка клуба</label>
+              <input 
+                type="file" 
+                accept="image/*"
+                className="form-input" 
+                onChange={e => setEditImageFile(e.target.files[0])} 
+              />
+            </div>
+            <div className="form-group">
               <textarea 
                 className="form-input" 
                 rows="3" 
@@ -180,6 +211,13 @@ export default function Clubs() {
           </form>
         ) : (
           <div className="card" style={{ marginBottom: '2rem' }}>
+            {selectedClub.image_url && (
+              <img 
+                src={selectedClub.image_url} 
+                alt={selectedClub.name} 
+                style={{ width: '100%', height: '300px', objectFit: 'cover', borderRadius: '0.5rem', marginBottom: '1.5rem' }} 
+              />
+            )}
             <div className="flex-between" style={{ marginBottom: '1rem' }}>
               <h2 className="page-title" style={{ margin: 0 }}>
                 {selectedClub.name}
@@ -194,6 +232,7 @@ export default function Clubs() {
                       description: selectedClub.description,
                       meeting_time: selectedClub.meeting_time,
                       contacts: selectedClub.contacts,
+                      image_url: selectedClub.image_url || '',
                     });
                     setIsDetailEditing(true); 
                   }}
@@ -266,6 +305,15 @@ export default function Clubs() {
             <input className="form-input" placeholder="Название клуба" required value={newClub.name} onChange={e => setNewClub({...newClub, name: e.target.value})} />
           </div>
           <div className="form-group">
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Обложка клуба</label>
+            <input 
+              type="file" 
+              accept="image/*"
+              className="form-input" 
+              onChange={e => setNewImageFile(e.target.files[0])} 
+            />
+          </div>
+          <div className="form-group">
             <textarea className="form-input" rows="3" placeholder="Описание" required value={newClub.description} onChange={e => setNewClub({...newClub, description: e.target.value})} />
           </div>
           <div className="form-group-row">
@@ -280,18 +328,27 @@ export default function Clubs() {
         {clubs.map(club => {
           const isMember = userClubs.includes(club.name);
           return (
-            <div key={club.id} className="card flex-column-between" style={{ cursor: 'pointer', transition: 'transform 0.2s' }} onClick={() => openClubDetails(club)}>
+            <div key={club.id} className="card flex-column-between" style={{ cursor: 'pointer', transition: 'transform 0.2s', padding: 0, overflow: 'hidden' }} onClick={() => openClubDetails(club)}>
               <div>
-                <h3 className="card-title">{club.name}</h3>
-                <p className="card-meta">Время: {club.meeting_time}</p>
-                <p className="card-desc" style={{ marginTop: '0.5rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {club.description}
-                </p>
+                {club.image_url && (
+                  <img 
+                    src={club.image_url} 
+                    alt={club.name} 
+                    style={{ width: '100%', height: '160px', objectFit: 'cover' }} 
+                  />
+                )}
+                <div style={{ padding: '1.5rem' }}>
+                  <h3 className="card-title">{club.name}</h3>
+                  <p className="card-meta">Время: {club.meeting_time}</p>
+                  <p className="card-desc" style={{ marginTop: '0.5rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {club.description}
+                  </p>
+                </div>
               </div>
               <div
                 className="flex-between"
                 style={{
-                  marginTop: '1rem',
+                  padding: '0 1.5rem 1.5rem 1.5rem',
                   justifyContent: isAdmin ? 'flex-end' : 'space-between',
                 }}
               >

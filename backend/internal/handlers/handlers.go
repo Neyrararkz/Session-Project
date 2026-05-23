@@ -6,6 +6,7 @@ import (
 	"itstep-network/internal/models"
 	"itstep-network/utils"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -29,13 +30,13 @@ func Register(c *gin.Context) {
 	query := `INSERT INTO users (name, surname, email, password, student_group, course, direction, role) 
 	          VALUES ($1, $2, $3, $4, $5, $6, $7, 'student')`
 
-	_, err = config.DB.Exec(query, 
-		input.Name, 
-		input.Surname, 
-		input.Email, 
-		string(hashedPassword), 
-		input.Group, 
-		input.Course, 
+	_, err = config.DB.Exec(query,
+		input.Name,
+		input.Surname,
+		input.Email,
+		string(hashedPassword),
+		input.Group,
+		input.Course,
 		input.Direction,
 	)
 
@@ -70,18 +71,18 @@ func Login(c *gin.Context) {
 	`
 
 	row := config.DB.QueryRow(query, input.Email)
-	
+
 	err := row.Scan(
-		&user.ID, 
-		&user.Name, 
-		&user.Surname, 
-		&user.Email, 
-		&hashedPassword, 
-		&user.Group, 
-		&user.Course, 
-		&user.Direction, 
-		&user.Bio, 
-		pq.Array(&user.Clubs), 
+		&user.ID,
+		&user.Name,
+		&user.Surname,
+		&user.Email,
+		&hashedPassword,
+		&user.Group,
+		&user.Course,
+		&user.Direction,
+		&user.Bio,
+		pq.Array(&user.Clubs),
 		&user.Role,
 	)
 
@@ -131,6 +132,7 @@ func GetCurrentUser(c *gin.Context) {
 			COALESCE(direction, ''),
 			COALESCE(bio, ''),
 			COALESCE(clubs, '{}'),
+			COALESCE(avatar_url, ''),
 			role
 		FROM users
 		WHERE id = $1
@@ -148,6 +150,7 @@ func GetCurrentUser(c *gin.Context) {
 		&user.Direction,
 		&user.Bio,
 		pq.Array(&user.Clubs),
+		&user.AvatarURL,
 		&user.Role,
 	)
 
@@ -157,16 +160,30 @@ func GetCurrentUser(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Ошибка базы данных",
-			"error":   err.Error(),
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка базы данных", "error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"user": user,
-	})
+	c.JSON(http.StatusOK, gin.H{"user": user})
+}
+
+func UpdateProfile(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	var input models.UpdateProfileInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректные данные"})
+		return
+	}
+
+	query := `UPDATE users SET bio = $1, clubs = $2, avatar_url = $3 WHERE id = $4`
+	_, err := config.DB.Exec(query, input.Bio, pq.Array(input.Clubs), input.AvatarURL, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось обновить профиль"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Профиль успешно обновлен!"})
 }
 
 func GetPosts(c *gin.Context) {
@@ -274,9 +291,8 @@ func ToggleLike(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Статус лайка изменен"})
 }
 
-
 func GetClubs(c *gin.Context) {
-	rows, err := config.DB.Query(`SELECT id, name, description, meeting_time, contacts FROM clubs ORDER BY id DESC`)
+	rows, err := config.DB.Query(`SELECT id, name, description, meeting_time, contacts, image_url FROM clubs ORDER BY id DESC`)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка сервера при получении клубов"})
 		return
@@ -286,7 +302,7 @@ func GetClubs(c *gin.Context) {
 	clubs := []models.Club{}
 	for rows.Next() {
 		var club models.Club
-		if err := rows.Scan(&club.ID, &club.Name, &club.Description, &club.MeetingTime, &club.Contacts); err != nil {
+		if err := rows.Scan(&club.ID, &club.Name, &club.Description, &club.MeetingTime, &club.Contacts, &club.ImageURL); err != nil {
 			continue
 		}
 		clubs = append(clubs, club)
@@ -301,8 +317,8 @@ func CreateClub(c *gin.Context) {
 		return
 	}
 
-	query := `INSERT INTO clubs (name, description, meeting_time, contacts) VALUES ($1, $2, $3, $4)`
-	_, err := config.DB.Exec(query, input.Name, input.Description, input.MeetingTime, input.Contacts)
+	query := `INSERT INTO clubs (name, description, meeting_time, contacts, image_url) VALUES ($1, $2, $3, $4, $5)`
+	_, err := config.DB.Exec(query, input.Name, input.Description, input.MeetingTime, input.Contacts, input.ImageURL)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось создать клуб"})
 		return
@@ -316,8 +332,7 @@ func UpdateClub(c *gin.Context) {
 	var input models.UpdateClubInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest,
-			gin.H{"message": "Некорректные данные"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректные данные"})
 		return
 	}
 
@@ -327,8 +342,9 @@ func UpdateClub(c *gin.Context) {
 			name=$1,
 			description=$2,
 			meeting_time=$3,
-			contacts=$4
-		WHERE id=$5
+			contacts=$4,
+			image_url=$5
+		WHERE id=$6
 	`
 
 	result, err := config.DB.Exec(
@@ -337,26 +353,23 @@ func UpdateClub(c *gin.Context) {
 		input.Description,
 		input.MeetingTime,
 		input.Contacts,
+		input.ImageURL,
 		id,
 	)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError,
-			gin.H{"message": "Не удалось обновить клуб"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось обновить клуб"})
 		return
 	}
 
 	rows, _ := result.RowsAffected()
 
 	if rows == 0 {
-		c.JSON(http.StatusNotFound, gin.H{
-			"message": "Клуб не найден",
-		})
+		c.JSON(http.StatusNotFound, gin.H{"message": "Клуб не найден"})
 		return
 	}
 
-	c.JSON(http.StatusOK,
-		gin.H{"message": "Клуб обновлен"})
+	c.JSON(http.StatusOK, gin.H{"message": "Клуб обновлен"})
 }
 
 func DeleteClub(c *gin.Context) {
@@ -452,7 +465,7 @@ func SendMessage(c *gin.Context) {
 func GetUserPosts(c *gin.Context) {
 	currentUserID, _ := c.Get("userID")
 	userIDParam := c.Param("id")
-	
+
 	targetUserID := currentUserID.(int)
 	if userIDParam != "" {
 		id, err := strconv.Atoi(userIDParam)
@@ -491,22 +504,23 @@ func GetUserPosts(c *gin.Context) {
 	c.JSON(http.StatusOK, posts)
 }
 
-func UpdateProfile(c *gin.Context) {
-	userID, _ := c.Get("userID")
-
-	var input models.UpdateProfileInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректные данные"})
-		return
-	}
-
-	query := `UPDATE users SET bio = $1, clubs = $2 WHERE id = $3`
-	_, err := config.DB.Exec(query, input.Bio, pq.Array(input.Clubs), userID)
+func UploadImage(c *gin.Context) {
+	file, err := c.FormFile("image")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось обновить профиль"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл не найден"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Профиль успешно обновлен!"})
-}
+	filename := filepath.Base(file.Filename)
 
+	filePath := "./uploads/" + filename
+
+	if err := c.SaveUploadedFile(file, filePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось сохранить файл"})
+		return
+	}
+
+	fileURL := "http://localhost:8080/uploads/" + filename
+
+	c.JSON(http.StatusOK, gin.H{"url": fileURL})
+}

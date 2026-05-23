@@ -9,6 +9,7 @@
 --     direction VARCHAR(150),
 --     bio TEXT DEFAULT '',
 --     clubs TEXT[] DEFAULT '{}',
+--     avatar_url VARCHAR(255) DEFAULT ''
 --     role VARCHAR(50) DEFAULT 'student'
 -- );
 
@@ -31,7 +32,8 @@
 --     name VARCHAR(255) NOT NULL,
 --     description TEXT,
 --     meeting_time VARCHAR(255),
---     contacts VARCHAR(255)
+--     contacts VARCHAR(255),
+--     image_url VARCHAR(255) DEFAULT ''
 -- );
 
 -- CREATE TABLE club_comments (

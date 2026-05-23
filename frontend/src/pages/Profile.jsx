@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { api, handleError } from '../api';
+import Avatar from '../components/Avatar';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [bio, setBio] = useState('');
+  const [avatarFile, setAvatarFile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
   const loadProfileData = async () => {
@@ -33,11 +35,19 @@ export default function Profile() {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     try {
+      let avatarUrl = user.avatar_url;
+      
+      if (avatarFile) {
+        avatarUrl = await api.uploadImage(avatarFile);
+      }
+
       await api.put('/user/profile', { 
         bio: bio, 
-        clubs: user.clubs || [] 
+        clubs: user.clubs || [],
+        avatar_url: avatarUrl
       });
       setIsEditing(false);
+      setAvatarFile(null);
       loadProfileData();
     } catch (err) {
       handleError(err);
@@ -50,22 +60,12 @@ export default function Profile() {
     <div className="profile-wrapper">
       <div className="card">
         <div className="profile-top-bar">
-          <div>
-            <h2 className="profile-name">
-              {user.name} {user.surname}
-            </h2>
-            {user.role !== 'admin' && (
-              <p className="profile-dir">{user.direction}</p>
-            )}
-            {user.role === 'student' ? (
-              <p className="profile-sub">
-                Группа: {user.group} | Курс: {user.course}
-              </p>
-            ) : user.role === 'teacher' ? (
-              <p className="profile-sub">Преподаватель</p>
-            ) : user.role === 'admin' ? (
-              <p className="profile-sub">Администратор</p>
-            ) : null}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <Avatar src={avatarFile ? URL.createObjectURL(avatarFile) : user.avatar_url} size="60px" />
+            <div>
+              <h2 className="profile-name">{user.name} {user.surname}</h2>
+              {user.role !== 'admin' && <p className="profile-dir">{user.direction}</p>}
+            </div>
           </div>
           <button 
             onClick={() => setIsEditing(!isEditing)} 
@@ -77,34 +77,15 @@ export default function Profile() {
 
         {!isEditing ? (
           <div className="profile-details">
-            <div>
-              <h5 className="profile-section-heading">О себе</h5>
-              <p className="profile-bio-text">{user.bio || 'Информация не заполнена'}</p>
-            </div>
-            {user.role !== 'admin' && (
-              <div>
-                <h5 className="profile-section-heading">
-                  Студенческие клубы
-                </h5>
-
-                <div className="badge-container">
-                  {user.clubs && user.clubs.length > 0 ? (
-                    user.clubs.map((club, idx) => (
-                      <span key={idx} className="badge">
-                        {club}
-                      </span>
-                    ))
-                  ) : (
-                    <p className="profile-empty-text">
-                      Не состоит в клубах
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+            <h5 className="profile-section-heading">О себе</h5>
+            <p className="profile-bio-text">{user.bio || 'Информация не заполнена'}</p>
           </div>
         ) : (
           <form onSubmit={handleSaveProfile} className="profile-form">
+            <div className="form-group">
+              <label className="form-label">Аватар</label>
+              <input type="file" accept="image/*" className="form-input" onChange={(e) => setAvatarFile(e.target.files[0])} />
+            </div>
             <div className="form-group">
               <label className="form-label">Расскажите о себе</label>
               <textarea 
@@ -112,32 +93,21 @@ export default function Profile() {
                 rows="3" 
                 value={bio} 
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Твои интересы, стек технологий или хобби..."
               />
             </div>
             <button type="submit" className="btn btn-success">Сохранить изменения</button>
           </form>
         )}
       </div>
-
+      
       <div>
-        <h3 className="profile-posts-heading">Мои публикации</h3>
-        {posts.length === 0 ? (
-          <p className="empty-state">Вы еще ничего не публиковали.</p>
-        ) : (
-          posts.map((post) => (
-            <div key={post.id} className="card">
-              <div className="post-header">
-                <h4 className="card-title">{post.title}</h4>
-                <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
-              </div>
-              <p className="post-content">{post.content}</p>
-              <div className="post-likes">
-                <span>❤️ {post.likes_count}</span>
-              </div>
-            </div>
-          ))
-        )}
+        <h3 className="profile-posts-heading">Мои посты</h3>
+        {posts.map((post) => (
+          <div key={post.id} className="card">
+            <h4 className="card-title">{post.title}</h4>
+            <p className="post-content">{post.content}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

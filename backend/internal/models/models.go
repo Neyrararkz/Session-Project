@@ -12,6 +12,7 @@ type User struct {
 	Direction string   `json:"direction"`
 	Bio       string   `json:"bio"`
 	Clubs     []string `json:"clubs"`
+	AvatarURL string   `json:"avatar_url"`
 	Role      string   `json:"role"`
 }
 
@@ -52,8 +53,9 @@ type LikeInput struct {
 }
 
 type UpdateProfileInput struct {
-	Bio   string   `json:"bio"`
-	Clubs []string `json:"clubs"`
+	Bio   string     `json:"bio"`
+	Clubs []string   `json:"clubs"`
+	AvatarURL string `json:"avatar_url"`
 }
 
 type Club struct {
@@ -62,6 +64,7 @@ type Club struct {
 	Description string `json:"description"`
 	MeetingTime string `json:"meeting_time"`
 	Contacts    string `json:"contacts"`
+	ImageURL    string `json:"image_url" db:"image_url"`
 }
 
 type ClubComment struct {
@@ -77,6 +80,7 @@ type CreateClubInput struct {
 	Description string `json:"description"`
 	MeetingTime string `json:"meeting_time"`
 	Contacts    string `json:"contacts"`
+	ImageURL    string `json:"image_url" db:"image_url"`
 }
 
 type ClubCommentInput struct {
@@ -84,7 +88,7 @@ type ClubCommentInput struct {
 }
 
 type ToggleClubInput struct {
-	Action string `json:"action"` 
+	Action string `json:"action"`
 }
 
 type UpdateClubInput struct {
@@ -92,4 +96,5 @@ type UpdateClubInput struct {
 	Description string `json:"description"`
 	MeetingTime string `json:"meeting_time"`
 	Contacts    string `json:"contacts"`
+	ImageURL    string `json:"image_url" db:"image_url"`
 }
