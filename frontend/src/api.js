@@ -17,6 +17,7 @@ export const register = async (userData) => { const res = await axiosInstance.po
 export const getCurrentUser = async () => { const res = await axiosInstance.get('/auth/me'); return res.data.user; };
 export const getUserById = async (id) => { const res = await axiosInstance.get(`/users/${id}`); return res.data.user; };
 export const getUserPosts = async (id) => { const res = await axiosInstance.get(`/users/${id}/posts`); return res.data; };
+export const searchUsers = async (query) => { const res = await axiosInstance.get('/search/users', { params: { q: query } }); return res.data; };
 
 export const uploadImage = async (file) => { const formData = new FormData(); formData.append('image', file); const res = await axiosInstance.post('/upload', formData); return res.data.url; };
 
@@ -81,6 +82,7 @@ export const api = {
     getCurrentUser, 
     getUserById,
     getUserPosts,
+    searchUsers,
     fetchFriends, 
     fetchChats, 
     fetchMessages, 

@@ -83,7 +83,7 @@ export default function PostCard({ post, currentUserId, onDelete, onToggleLike, 
   const getRepliesFor = (parentId) => comments.filter(c => c.parent_id === parentId);
 
   return (
-    <div className="auth-card" style={{ padding: '1.5rem', position: 'relative' }}>
+    <div className="card feed-card" style={{ padding: '1.5rem', position: 'relative' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <Link
           to={`/profile/${post.user_id}`}

@@ -50,7 +50,7 @@ function UserCard({ user, children }) {
       </Link>
 
       {children && (
-        <div style={{ display: 'flex', gap: '0.6rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: '0.6rem', flexShrink: 0, flexWrap: 'wrap' }}>
           {children}
         </div>
       )}
@@ -63,6 +63,11 @@ export default function Friends() {
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [userSearch, setUserSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchStatuses, setSearchStatuses] = useState({});
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const loadFriendsData = async () => {
     try {
@@ -82,15 +87,58 @@ export default function Friends() {
     }
   };
 
+  const loadSearchResults = async (query = userSearch) => {
+    const trimmed = query.trim();
+
+    if (!trimmed) {
+      setSearchResults([]);
+      setSearchStatuses({});
+      return;
+    }
+
+    try {
+      setSearchLoading(true);
+
+      const users = await api.searchUsers(trimmed);
+      setSearchResults(users || []);
+
+      const statuses = {};
+
+      for (const foundUser of users || []) {
+        const status = await api.getFriendshipStatus(foundUser.id);
+        statuses[foundUser.id] = status;
+      }
+
+      setSearchStatuses(statuses);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadFriendsData();
   }, []);
 
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      loadSearchResults(userSearch);
+    }, 350);
+
+    return () => clearTimeout(timeout);
+  }, [userSearch]);
+
+  const refreshAfterFriendAction = async () => {
+    await loadFriendsData();
+    await loadSearchResults();
+    window.dispatchEvent(new Event('friends-updated'));
+  };
+
   const handleAcceptRequest = async (requestId) => {
     try {
       await api.acceptFriendRequest(requestId);
-      await loadFriendsData();
-      window.dispatchEvent(new Event('friends-updated'));
+      await refreshAfterFriendAction();
     } catch (err) {
       handleError(err);
     }
@@ -99,8 +147,7 @@ export default function Friends() {
   const handleDeleteRequest = async (requestId) => {
     try {
       await api.deleteFriendRequest(requestId);
-      await loadFriendsData();
-      window.dispatchEvent(new Event('friends-updated'));
+      await refreshAfterFriendAction();
     } catch (err) {
       handleError(err);
     }
@@ -111,11 +158,80 @@ export default function Friends() {
 
     try {
       await api.removeFriend(friendId);
-      await loadFriendsData();
-      window.dispatchEvent(new Event('friends-updated'));
+      await refreshAfterFriendAction();
     } catch (err) {
       handleError(err);
     }
+  };
+
+  const handleSendFriendRequest = async (userId) => {
+    try {
+      await api.sendFriendRequest(userId);
+      await refreshAfterFriendAction();
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const renderSearchAction = (foundUser) => {
+    const status = searchStatuses[foundUser.id];
+
+    if (!status) return null;
+
+    if (status.status === 'none') {
+      return (
+        <button
+          className="btn btn-inline btn-primary"
+          onClick={() => handleSendFriendRequest(foundUser.id)}
+        >
+          Добавить
+        </button>
+      );
+    }
+
+    if (status.status === 'outgoing_pending') {
+      return (
+        <button
+          className="btn btn-inline btn-secondary"
+          onClick={() => handleDeleteRequest(status.request_id)}
+        >
+          Отменить заявку
+        </button>
+      );
+    }
+
+    if (status.status === 'incoming_pending') {
+      return (
+        <>
+          <button
+            className="btn btn-inline btn-success"
+            onClick={() => handleAcceptRequest(status.request_id)}
+          >
+            Принять
+          </button>
+
+          <button
+            className="btn btn-inline btn-secondary"
+            onClick={() => handleDeleteRequest(status.request_id)}
+          >
+            Отклонить
+          </button>
+        </>
+      );
+    }
+
+    if (status.status === 'friends') {
+      return (
+        <button
+          className="btn btn-inline btn-danger"
+          onClick={() => handleRemoveFriend(foundUser.id)}
+        >
+          Удалить из друзей
+        </button>
+      );
+    }
+
+    return null;
   };
 
   if (loading) {
@@ -123,8 +239,44 @@ export default function Friends() {
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <h1 className="page-title">Друзья</h1>
+    <div style={{ maxWidth: '850px', margin: '0 auto' }}>
+      <h1 className="page-title">Друзья ({friends.length})</h1>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h3 className="section-title">Поиск пользователей</h3>
+
+        <div className="card" style={{ marginBottom: '1rem' }}>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Введите имя, фамилию, группу или направление"
+            value={userSearch}
+            onChange={(e) => setUserSearch(e.target.value)}
+            style={{
+              marginBottom: 0,
+              borderRadius: '999px',
+              backgroundColor: 'var(--bg-gray)',
+              padding: '0.85rem 1rem'
+            }}
+          />
+        </div>
+
+        {userSearch.trim() && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {searchLoading ? (
+              <p className="empty-state">Ищем пользователей...</p>
+            ) : searchResults.length === 0 ? (
+              <p className="empty-state">Пользователи не найдены</p>
+            ) : (
+              searchResults.map(foundUser => (
+                <UserCard key={foundUser.id} user={foundUser}>
+                  {renderSearchAction(foundUser)}
+                </UserCard>
+              ))
+            )}
+          </div>
+        )}
+      </section>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         <section>
@@ -156,7 +308,7 @@ export default function Friends() {
         </section>
 
         <section>
-          <h3 className="section-title">Мои друзья  ({friends.length})</h3>
+          <h3 className="section-title">Мои друзья ({friends.length})</h3>
 
           {friends.length === 0 ? (
             <p className="empty-state">Список друзей пока пуст</p>

@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api, handleError } from '../api';
+import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/Avatar';
 import PostCard from '../components/PostCard';
 
 export default function Profile() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const [currentUser, setCurrentUser] = useState(null);
   const [user, setUser] = useState(null);
@@ -98,6 +101,11 @@ export default function Profile() {
     } catch (err) {
       handleError(err);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   const handleCommentAddedLocally = (postId) => {
@@ -285,14 +293,23 @@ const renderFriendshipButton = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'center', flexWrap: 'wrap' }}>
             {isOwnProfile ? (
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className={`btn btn-inline ${isEditing ? 'btn-secondary' : 'btn-primary'}`}
-              >
-                {isEditing ? 'Отмена' : 'Редактировать'}
-              </button>
+              <>
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className={`btn btn-inline ${isEditing ? 'btn-secondary' : 'btn-primary'}`}
+                >
+                  {isEditing ? 'Отмена' : 'Редактировать'}
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="btn btn-inline btn-danger"
+                >
+                  Выйти
+                </button>
+              </>
             ) : (
               renderFriendshipButton()
             )}

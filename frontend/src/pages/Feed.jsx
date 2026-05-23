@@ -9,6 +9,7 @@ export default function Feed() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [postFiles, setPostFiles] = useState([]);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const loadFeed = async () => {
     try {
@@ -26,14 +27,33 @@ export default function Feed() {
     loadFeed();
   }, []);
 
-  const handleCommentAddedLocally = (postId) => {
-    setPosts(prevPosts => prevPosts.map(p => {
-      if (p.id === postId) {
-        return { ...p, comments_count: (p.comments_count || 0) + 1 };
-      }
+  const normalizeText = (text) => {
+    return String(text || '').toLowerCase().trim();
+  };
 
-      return p;
-    }));
+  const filteredPosts = posts.filter((post) => {
+    if (!searchTerm.trim()) return true;
+
+    const queryWords = normalizeText(searchTerm)
+      .split(/\s+/)
+      .filter(Boolean);
+
+    const searchableText = normalizeText(
+      `${post.title} ${post.content} ${post.author_name} ${post.author_surname}`
+    );
+
+    return queryWords.every((word) => searchableText.includes(word));
+  });
+
+  const handleCommentAddedLocally = (postId) => {
+    setPosts(prevPosts =>
+      prevPosts.map((p) => {
+        if (p.id === postId) {
+          return { ...p, comments_count: (p.comments_count || 0) + 1 };
+        }
+        return p;
+      })
+    );
   };
 
   const handleFileSelection = (e) => {
@@ -76,7 +96,7 @@ export default function Feed() {
     try {
       await api.toggleLike(postId, !isLikedNow);
 
-      setPosts(posts.map(p => {
+      setPosts(posts.map((p) => {
         if (p.id === postId) {
           return {
             ...p,
@@ -97,15 +117,31 @@ export default function Feed() {
 
     try {
       await api.deletePost(postId);
-      setPosts(posts.filter(p => p.id !== postId));
+      setPosts(posts.filter((p) => p.id !== postId));
     } catch (err) {
       handleError(err);
     }
   };
 
   return (
-    <div style={{ maxWidth: '700px', margin: '0 auto', padding: '2rem 1rem' }}>
-      <div className="auth-card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
+    <div className="feed-page">
+      <div className="card feed-search-card">
+        <input
+          type="text"
+          className="form-input"
+          placeholder="Поиск по постам"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            marginBottom: 0,
+            borderRadius: '999px',
+            backgroundColor: 'var(--bg-gray)',
+            padding: '0.85rem 1rem'
+          }}
+        />
+      </div>
+
+      <div className="card feed-card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
         <h3 style={{ marginBottom: '1rem', fontWeight: '600' }}>
           Создать новую публикацию
         </h3>
@@ -135,7 +171,7 @@ export default function Feed() {
             }}
           />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <label
               style={{
                 cursor: 'pointer',
@@ -166,7 +202,7 @@ export default function Feed() {
           </div>
 
           {postFiles.length > 0 && (
-            <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#888' }}>
+            <div style={{ marginTop: '0.7rem', fontSize: '0.85rem', color: '#888' }}>
               Выбрано файлов: {postFiles.length}
             </div>
           )}
@@ -178,18 +214,23 @@ export default function Feed() {
           style={{
             fontWeight: '600',
             borderBottom: '1px solid #eee',
-            paddingBottom: '0.5rem'
+            paddingBottom: '0.5rem',
+            marginBottom: '0.3rem'
           }}
         >
-          Лента новостей колледжа
+          {searchTerm.trim()
+            ? `Результаты поиска (${filteredPosts.length})`
+            : 'Лента новостей колледжа'}
         </h3>
 
-        {posts.length === 0 ? (
+        {filteredPosts.length === 0 ? (
           <p style={{ textAlign: 'center', color: '#888', marginTop: '1rem' }}>
-            Здесь пока пусто. Будьте первым, кто напишет пост!
+            {searchTerm.trim()
+              ? 'По вашему запросу ничего не найдено.'
+              : 'Здесь пока пусто. Будьте первым, кто напишет пост!'}
           </p>
         ) : (
-          posts.map((post) => (
+          filteredPosts.map((post) => (
             <PostCard
               key={post.id}
               post={post}

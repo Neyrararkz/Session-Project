@@ -37,6 +37,7 @@ func main() {
 		{
 			protected.GET("/auth/me", handlers.GetCurrentUser)
 			protected.GET("/users/:id", handlers.GetUserByID)
+			protected.GET("/search/users", handlers.SearchUsers)
 			
 			protected.POST("/upload", handlers.UploadImage)
 

@@ -6,6 +6,7 @@ import Avatar from '../components/Avatar';
 export default function Clubs() {
   const [user, setUser] = useState(null);
   const [clubs, setClubs] = useState([]);
+  const [clubSearch, setClubSearch] = useState('');
   const [view, setView] = useState('list'); 
   const [selectedClub, setSelectedClub] = useState(null);
   const [members, setMembers] = useState([]);
@@ -174,6 +175,16 @@ export default function Clubs() {
 
   const userClubs = user.clubs || [];
   const isAdmin = user.role === 'admin';
+
+  const filteredClubs = clubs.filter(club => {
+    const query = clubSearch.toLowerCase().trim();
+
+    if (!query) return true;
+
+    const text = `${club.name} ${club.description} ${club.meeting_time} ${club.contacts}`.toLowerCase();
+
+    return text.includes(query);
+  });
 
   const rootComments = comments.filter(c => !c.parent_id);
   const getRepliesFor = (parentId) => comments.filter(c => c.parent_id === parentId);
@@ -657,13 +668,32 @@ export default function Clubs() {
 
   return (
     <div>
-      <div className="flex-between" style={{ marginBottom: '2rem' }}>
-        <h2 className="page-title" style={{ margin: 0 }}>Студенческие клубы</h2>
-        {isAdmin && (
-          <button onClick={() => setShowCreateForm(!showCreateForm)} className="btn btn-inline btn-primary">
-            {showCreateForm ? 'Отменить' : '+ Добавить'}
-          </button>
-        )}
+      <div className="clubs-page-header">
+        <div>
+          <h2 className="page-title" style={{ margin: 0 }}>Студенческие клубы</h2>
+          <p style={{ margin: '0.4rem 0 0 0', color: 'var(--text-muted)' }}>
+            Найдите клуб по названию, описанию или времени встреч
+          </p>
+        </div>
+
+        <div className="clubs-header-actions">
+          <input
+            type="text"
+            className="form-input clubs-search-input"
+            placeholder="Поиск по клубам"
+            value={clubSearch}
+            onChange={(e) => setClubSearch(e.target.value)}
+          />
+
+          {isAdmin && (
+            <button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="btn btn-inline btn-primary"
+            >
+              {showCreateForm ? 'Отменить' : '+ Добавить'}
+            </button>
+          )}
+        </div>
       </div>
 
       {isAdmin && showCreateForm && (
@@ -692,8 +722,8 @@ export default function Clubs() {
         </form>
       )}
 
-      <div className="grid-300">
-        {clubs.map(club => {
+      <div className="clubs-grid">
+        {filteredClubs.map(club => {
           const isMember = userClubs.includes(String(club.id));
           return (
             <div key={club.id} className="card flex-column-between" style={{ cursor: 'pointer', transition: 'transform 0.2s', padding: 0, overflow: 'hidden' }} onClick={() => openClubDetails(club)}>
@@ -739,7 +769,11 @@ export default function Clubs() {
             </div>
           );
         })}
-        {clubs.length === 0 && <p className="empty-state">Нет доступных клубов.</p>}
+        {filteredClubs.length === 0 && (
+          <p className="empty-state">
+            {clubSearch.trim() ? 'Клубы не найдены.' : 'Нет доступных клубов.'}
+          </p>
+        )}
       </div>
     </div>
   );

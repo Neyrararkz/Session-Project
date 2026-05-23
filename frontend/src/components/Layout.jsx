@@ -81,47 +81,42 @@ export const Layout = ({ children }) => {
   }
 
   return (
-    <div className="layout-container">
-      <aside className="sidebar">
-        <div className="sidebar-logo">ITSTEP Social</div>
+    <div className="app-shell">
+      <header className="top-header">
+        <Link to="/" className="top-header-logo">
+          ITSTEP Social
+        </Link>
 
-        <nav className="sidebar-nav">
-          {menuItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`nav-link ${location.pathname === item.path ? 'nav-link-active' : ''}`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
+        <div className="top-header-actions">
+          <Link to="/chats" className="top-header-icon" title="Сообщения">
+            💬
+          </Link>
 
-      <main className="main-content">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            marginBottom: '1.5rem'
-          }}
-        >
-          <Link
-            to="/profile"
-            title="Мой профиль"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              textDecoration: 'none'
-            }}
-          >
-            <Avatar src={headerUser?.avatar_url} size="46px" />
+          <Link to="/profile" className="top-header-avatar" title="Мой профиль">
+            <Avatar src={headerUser?.avatar_url} size="44px" />
           </Link>
         </div>
+      </header>
 
-        {children}
-      </main>
+      <div className="layout-container">
+        <aside className="sidebar">
+          <nav className="sidebar-nav">
+            {menuItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`nav-link ${location.pathname === item.path ? 'nav-link-active' : ''}`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </aside>
+
+        <main className="main-content">
+          {children}
+        </main>
+      </div>
     </div>
   );
 };
