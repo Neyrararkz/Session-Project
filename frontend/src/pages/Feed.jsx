@@ -125,27 +125,18 @@ export default function Feed() {
 
   return (
     <div className="feed-page">
-      <div className="card feed-search-card">
+      <div className="page-search-row">
         <input
           type="text"
-          className="form-input"
+          className="form-input page-search-input"
           placeholder="Поиск по постам"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            marginBottom: 0,
-            borderRadius: '999px',
-            backgroundColor: 'var(--bg-gray)',
-            padding: '0.85rem 1rem'
-          }}
         />
       </div>
 
-      <div className="card feed-card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
-        <h3 style={{ marginBottom: '1rem', fontWeight: '600' }}>
-          Создать новую публикацию
-        </h3>
-
+      <div className="card feed-card composer-card">
+        <h3 className="composer-title">Создать новую публикацию</h3>
         <form onSubmit={handleCreatePost}>
           <input
             type="text"
@@ -171,17 +162,8 @@ export default function Feed() {
             }}
           />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <label
-              style={{
-                cursor: 'pointer',
-                color: '#3498db',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-            >
+          <div className="composer-actions">
+            <label className="file-upload-label">
               📷 Прикрепить фото (до 5)
               <input
                 type="file"
@@ -210,14 +192,7 @@ export default function Feed() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <h3
-          style={{
-            fontWeight: '600',
-            borderBottom: '1px solid #eee',
-            paddingBottom: '0.5rem',
-            marginBottom: '0.3rem'
-          }}
-        >
+        <h3 className="feed-heading">
           {searchTerm.trim()
             ? `Результаты поиска (${filteredPosts.length})`
             : 'Лента новостей колледжа'}

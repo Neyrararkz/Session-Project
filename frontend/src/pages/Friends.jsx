@@ -5,27 +5,8 @@ import Avatar from '../components/Avatar';
 
 function UserCard({ user, children }) {
   return (
-    <div
-      className="card"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        margin: 0
-      }}
-    >
-      <Link
-        to={`/profile/${user.id}`}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.9rem',
-          textDecoration: 'none',
-          color: 'inherit',
-          flex: 1
-        }}
-      >
+    <div className="card friend-card">
+      <Link to={`/profile/${user.id}`} className="friend-card-main">
         <Avatar src={user.avatar_url} size="46px" />
 
         <div>
@@ -50,7 +31,7 @@ function UserCard({ user, children }) {
       </Link>
 
       {children && (
-        <div style={{ display: 'flex', gap: '0.6rem', flexShrink: 0, flexWrap: 'wrap' }}>
+        <div className="friend-card-actions">
           {children}
         </div>
       )}
@@ -239,25 +220,18 @@ export default function Friends() {
   }
 
   return (
-    <div style={{ maxWidth: '850px', margin: '0 auto' }}>
+    <div className="friends-page">
       <h1 className="page-title">Друзья ({friends.length})</h1>
 
       <section style={{ marginBottom: '2rem' }}>
-        <h3 className="section-title">Поиск пользователей</h3>
-
-        <div className="card" style={{ marginBottom: '1rem' }}>
+        
+        <div className="page-search-row">
           <input
             type="text"
-            className="form-input"
-            placeholder="Введите имя, фамилию, группу или направление"
+            className="form-input page-search-input"
+            placeholder="Поиск пользователей"
             value={userSearch}
             onChange={(e) => setUserSearch(e.target.value)}
-            style={{
-              marginBottom: 0,
-              borderRadius: '999px',
-              backgroundColor: 'var(--bg-gray)',
-              padding: '0.85rem 1rem'
-            }}
           />
         </div>
 

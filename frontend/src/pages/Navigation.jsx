@@ -7,11 +7,11 @@ export default function Navigation() {
   ];
 
   return (
-    <div>
+    <div className="page-shell">
       <h1 className="page-title">🧭 Справочный центр студента ITSTEP</h1>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {sections.map((s, idx) => (
-          <div key={idx} className="card" style={{ margin: 0 }}>
+          <div key={idx} className="card info-card">
             <h3 className="card-title" style={{ color: 'var(--primary)' }}>{s.title}</h3>
             <p className="card-desc" style={{ margin: 0 }}>{s.desc}</p>
           </div>

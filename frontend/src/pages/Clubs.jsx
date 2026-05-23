@@ -669,31 +669,28 @@ export default function Clubs() {
   return (
     <div>
       <div className="clubs-page-header">
-        <div>
-          <h2 className="page-title" style={{ margin: 0 }}>Студенческие клубы</h2>
-          <p style={{ margin: '0.4rem 0 0 0', color: 'var(--text-muted)' }}>
-            Найдите клуб по названию, описанию или времени встреч
-          </p>
-        </div>
+        <h2 className="page-title" style={{ margin: 0 }}>
+          Студенческие клубы
+        </h2>
 
-        <div className="clubs-header-actions">
-          <input
-            type="text"
-            className="form-input clubs-search-input"
-            placeholder="Поиск по клубам"
-            value={clubSearch}
-            onChange={(e) => setClubSearch(e.target.value)}
-          />
+        {isAdmin && (
+          <button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="btn btn-inline btn-primary"
+          >
+            {showCreateForm ? 'Отменить' : '+ Добавить'}
+          </button>
+        )}
+      </div>
 
-          {isAdmin && (
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="btn btn-inline btn-primary"
-            >
-              {showCreateForm ? 'Отменить' : '+ Добавить'}
-            </button>
-          )}
-        </div>
+      <div className="clubs-search-row">
+        <input
+          type="text"
+          className="form-input clubs-search-input"
+          placeholder="Поиск по клубам"
+          value={clubSearch}
+          onChange={(e) => setClubSearch(e.target.value)}
+        />
       </div>
 
       {isAdmin && showCreateForm && (
@@ -726,16 +723,16 @@ export default function Clubs() {
         {filteredClubs.map(club => {
           const isMember = userClubs.includes(String(club.id));
           return (
-            <div key={club.id} className="card flex-column-between" style={{ cursor: 'pointer', transition: 'transform 0.2s', padding: 0, overflow: 'hidden' }} onClick={() => openClubDetails(club)}>
+            <div key={club.id} className="card club-card flex-column-between" onClick={() => openClubDetails(club)}>
               <div>
                 {club.image_url && (
                   <img 
                     src={club.image_url} 
                     alt={club.name} 
-                    style={{ width: '100%', height: '160px', objectFit: 'cover' }} 
+                    className="club-card-image"
                   />
                 )}
-                <div style={{ padding: '1.5rem' }}>
+                <div className="club-card-body">
                   <h3 className="card-title">{club.name}</h3>
                   <p className="card-meta">Время: {club.meeting_time}</p>
                   <p className="card-desc" style={{ marginTop: '0.5rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
