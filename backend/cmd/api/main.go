@@ -68,6 +68,7 @@ func main() {
 			protected.DELETE("/friends/:id", handlers.RemoveFriend)
 
 			protected.GET("/chats", handlers.GetChats)
+			protected.GET("/messages/unread-count", handlers.GetUnreadMessagesCount)
 			protected.POST("/chats/direct/:id", handlers.GetOrCreateDirectChat)
 			protected.POST("/chats/group", handlers.CreateGroupChat)
 			protected.GET("/chats/:id/messages", handlers.GetMessages)

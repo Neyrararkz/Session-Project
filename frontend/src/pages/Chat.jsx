@@ -16,6 +16,12 @@ export default function Chat() {
   const [groupName, setGroupName] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
 
+  const [userSearch, setUserSearch] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState([]);
+  const [userSearchStatuses, setUserSearchStatuses] = useState({});
+  const [userSearchLoading, setUserSearchLoading] = useState(false);
+  const [friendRequestLoadingId, setFriendRequestLoadingId] = useState(null);
+
   const loadInitialData = async () => {
     try {
       setLoading(true);
@@ -38,6 +44,7 @@ export default function Chat() {
     try {
       const chatsData = await api.fetchChats();
       setChats(chatsData || []);
+      window.dispatchEvent(new Event('chats-updated'));
     } catch (err) {
       handleError(err);
     }
@@ -48,6 +55,7 @@ export default function Chat() {
       setMessagesLoading(true);
       const data = await api.fetchMessages(chatId);
       setMessages(data || []);
+      window.dispatchEvent(new Event('chats-updated'));
     } catch (err) {
       handleError(err);
     } finally {
@@ -55,9 +63,51 @@ export default function Chat() {
     }
   };
 
+  const searchUsers = async (query) => {
+    const trimmed = query.trim();
+
+    if (!trimmed) {
+      setUserSearchResults([]);
+      setUserSearchStatuses({});
+      return;
+    }
+
+    try {
+      setUserSearchLoading(true);
+
+      const users = await api.searchUsers(trimmed);
+      setUserSearchResults(users || []);
+
+      const statuses = {};
+
+      await Promise.all((users || []).map(async (foundUser) => {
+        try {
+          const status = await api.getFriendshipStatus(foundUser.id);
+          statuses[foundUser.id] = status;
+        } catch (err) {
+          statuses[foundUser.id] = null;
+        }
+      }));
+
+      setUserSearchStatuses(statuses);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setUserSearchLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      searchUsers(userSearch);
+    }, 350);
+
+    return () => clearTimeout(timeout);
+  }, [userSearch]);
 
   const getOtherMember = (chat) => {
     if (!currentUser || !chat?.members) return null;
@@ -89,7 +139,7 @@ export default function Chat() {
     if (other?.role === 'teacher') return 'Преподаватель';
     if (other?.role === 'admin') return 'Администратор';
 
-    return 'Студент';
+    return other?.group || 'Студент';
   };
 
   const getChatAvatar = (chat) => {
@@ -105,19 +155,50 @@ export default function Chat() {
     });
   }, [friends]);
 
+  const friendIds = useMemo(() => {
+    return new Set(friends.map(friend => friend.id));
+  }, [friends]);
+
   const handleSelectChat = async (chat) => {
     setSelectedChat(chat);
     await loadMessages(chat.id);
+    await loadChats();
   };
 
-  const handleStartDirectChat = async (friendId) => {
+  const handleStartDirectChat = async (userId) => {
     try {
-      const chat = await api.createDirectChat(friendId);
+      const chat = await api.createDirectChat(userId);
       await loadChats();
       setSelectedChat(chat);
+      setUserSearch('');
+      setUserSearchResults([]);
       await loadMessages(chat.id);
     } catch (err) {
       handleError(err);
+    }
+  };
+
+  const handleSendFriendRequest = async (e, userId) => {
+    e.stopPropagation();
+
+    try {
+      setFriendRequestLoadingId(userId);
+
+      await api.sendFriendRequest(userId);
+
+      setUserSearchStatuses(prev => ({
+        ...prev,
+        [userId]: {
+          status: 'outgoing_pending',
+          request_id: 0
+        }
+      }));
+
+      window.dispatchEvent(new Event('friends-updated'));
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setFriendRequestLoadingId(null);
     }
   };
 
@@ -182,112 +263,150 @@ export default function Chat() {
             Личные и групповые переписки внутри ITSTEP Social
           </p>
         </div>
-
-        <button
-          className="btn btn-inline btn-primary"
-          onClick={() => setShowGroupForm(!showGroupForm)}
-        >
-          {showGroupForm ? 'Скрыть' : '+ Групповой чат'}
-        </button>
       </div>
-
-      {showGroupForm && (
-        <form onSubmit={handleCreateGroupChat} className="card chat-group-form">
-          <h3 className="section-title">Новый групповой чат</h3>
-
-          <div className="form-group">
-            <input
-              className="form-input"
-              placeholder="Название чата"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-            />
-          </div>
-
-          <div className="chat-friends-picker">
-            {sortedFriends.length === 0 ? (
-              <p className="empty-state">Чтобы создать групповой чат, сначала добавьте друзей.</p>
-            ) : (
-              sortedFriends.map(friend => (
-                <label key={friend.id} className="chat-friend-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={selectedMemberIds.includes(friend.id)}
-                    onChange={() => handleToggleGroupMember(friend.id)}
-                  />
-
-                  <Avatar src={friend.avatar_url} size="34px" />
-
-                  <span>{friend.name} {friend.surname}</span>
-                </label>
-              ))
-            )}
-          </div>
-
-          <button
-            type="submit"
-            className="btn btn-success"
-            disabled={!groupName.trim() || selectedMemberIds.length === 0}
-          >
-            Создать чат
-          </button>
-        </form>
-      )}
 
       <div className="chat-container">
         <aside className="chat-sidebar">
-          <div className="chat-sidebar-section">
-            <h3 className="chat-sidebar-title">Чаты</h3>
+          <div className="chat-sidebar-scroll">
+            <div className="chat-sidebar-section chat-search-section">
+              <h3 className="chat-sidebar-title">Поиск</h3>
 
-            {chats.length === 0 ? (
-              <p className="chat-sidebar-empty">Пока нет диалогов</p>
-            ) : (
-              chats.map(chat => (
-                <button
-                  key={chat.id}
-                  className={`chat-list-item ${selectedChat?.id === chat.id ? 'chat-list-item-active' : ''}`}
-                  onClick={() => handleSelectChat(chat)}
-                >
-                  {chat.type === 'group' ? (
-                    <div className="chat-group-avatar">#</div>
+              <input
+                className="form-input chat-user-search-input"
+                placeholder="Найти пользователя"
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+              />
+
+              {userSearch.trim() && (
+                <div className="chat-search-results">
+                  {userSearchLoading ? (
+                    <p className="chat-sidebar-empty">Ищем...</p>
+                  ) : userSearchResults.length === 0 ? (
+                    <p className="chat-sidebar-empty">Пользователи не найдены</p>
                   ) : (
-                    <Avatar src={getChatAvatar(chat)} size="40px" />
-                  )}
+                    userSearchResults.map(foundUser => (
+                      <button
+                        key={foundUser.id}
+                        className="chat-search-user"
+                        onClick={() => handleStartDirectChat(foundUser.id)}
+                      >
+                        <Avatar src={foundUser.avatar_url} size="36px" />
 
-                  <div className="chat-list-text">
-                    <span className="chat-list-title">{getChatTitle(chat)}</span>
-                    <span className="chat-list-subtitle">
-                      {chat.last_message || getChatSubtitle(chat)}
-                    </span>
-                  </div>
-                </button>
-              ))
-            )}
+                        <div className="chat-list-text">
+                          <span className="chat-list-title">
+                            {foundUser.name} {foundUser.surname}
+                          </span>
+
+                          <span className="chat-list-subtitle">
+                            {foundUser.role === 'teacher'
+                              ? 'Преподаватель'
+                              : foundUser.role === 'admin'
+                                ? 'Администратор'
+                                : foundUser.group || 'Студент'}
+                          </span>
+                        </div>
+
+                        {!friendIds.has(foundUser.id) && userSearchStatuses[foundUser.id]?.status === 'none' && (
+                          <span
+                            className="chat-add-friend-button"
+                            onClick={(e) => handleSendFriendRequest(e, foundUser.id)}
+                            title="Добавить в друзья"
+                          >
+                            {friendRequestLoadingId === foundUser.id ? (
+                              <span className="chat-add-friend-loading">...</span>
+                            ) : (
+                              <img src="/icons/add-friend.svg" alt="" />
+                            )}
+                          </span>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="chat-sidebar-section">
+              <h3 className="chat-sidebar-title">Чаты</h3>
+
+              {chats.length === 0 ? (
+                <p className="chat-sidebar-empty">Пока нет диалогов</p>
+              ) : (
+                chats.map(chat => (
+                  <button
+                    key={chat.id}
+                    className={`chat-list-item ${selectedChat?.id === chat.id ? 'chat-list-item-active' : ''}`}
+                    onClick={() => handleSelectChat(chat)}
+                  >
+                    {chat.type === 'group' ? (
+                      <div className="chat-group-avatar">#</div>
+                    ) : (
+                      <Avatar src={getChatAvatar(chat)} size="40px" />
+                    )}
+
+                    <div className="chat-list-text">
+                      <span className="chat-list-title">{getChatTitle(chat)}</span>
+                      <span className="chat-list-subtitle">
+                        {chat.last_message || getChatSubtitle(chat)}
+                      </span>
+                    </div>
+
+                    {chat.unread_count > 0 && (
+                      <span className="chat-unread-badge">{chat.unread_count}</span>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
           </div>
 
-          <div className="chat-sidebar-section">
-            <h3 className="chat-sidebar-title">Начать личный чат</h3>
+          <div className="chat-sidebar-footer">
+            {showGroupForm && (
+              <form onSubmit={handleCreateGroupChat} className="chat-group-inline-form">
+                <input
+                  className="form-input"
+                  placeholder="Название чата"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                />
 
-            {sortedFriends.length === 0 ? (
-              <p className="chat-sidebar-empty">Список друзей пуст</p>
-            ) : (
-              sortedFriends.map(friend => (
+                <div className="chat-friends-picker">
+                  {sortedFriends.length === 0 ? (
+                    <p className="empty-state">Сначала добавьте друзей.</p>
+                  ) : (
+                    sortedFriends.map(friend => (
+                      <label key={friend.id} className="chat-friend-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={selectedMemberIds.includes(friend.id)}
+                          onChange={() => handleToggleGroupMember(friend.id)}
+                        />
+
+                        <Avatar src={friend.avatar_url} size="30px" />
+
+                        <span>{friend.name} {friend.surname}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+
                 <button
-                  key={friend.id}
-                  className="chat-list-item"
-                  onClick={() => handleStartDirectChat(friend.id)}
+                  type="submit"
+                  className="btn btn-success"
+                  disabled={!groupName.trim() || selectedMemberIds.length === 0}
                 >
-                  <Avatar src={friend.avatar_url} size="40px" />
-
-                  <div className="chat-list-text">
-                    <span className="chat-list-title">{friend.name} {friend.surname}</span>
-                    <span className="chat-list-subtitle">
-                      {friend.role === 'teacher' ? 'Преподаватель' : friend.role === 'admin' ? 'Администратор' : friend.group || 'Студент'}
-                    </span>
-                  </div>
+                  Создать
                 </button>
-              ))
+              </form>
             )}
+
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowGroupForm(!showGroupForm)}
+            >
+              {showGroupForm ? 'Скрыть форму' : '+ Групповой чат'}
+            </button>
           </div>
         </aside>
 
@@ -295,7 +414,7 @@ export default function Chat() {
           {!selectedChat ? (
             <div className="chat-empty-panel">
               <h3>Выберите чат</h3>
-              <p>Откройте существующий диалог или начните новый чат с другом.</p>
+              <p>Найдите пользователя, откройте существующий диалог или создайте групповой чат.</p>
             </div>
           ) : (
             <>
@@ -318,22 +437,32 @@ export default function Chat() {
                     return (
                       <div
                         key={message.id}
-                        className={`msg ${isMine ? 'msg-me' : 'msg-other'}`}
+                        className={`chat-message-row ${isMine ? 'chat-message-row-me' : 'chat-message-row-other'}`}
                       >
                         {!isMine && (
-                          <div className="msg-sender">
-                            {message.sender?.name} {message.sender?.surname}
-                          </div>
+                          <Avatar src={message.sender?.avatar_url} size="32px" />
                         )}
 
-                        <div>{message.text}</div>
+                        <div className={`msg ${isMine ? 'msg-me' : 'msg-other'}`}>
+                          {!isMine && (
+                            <div className="msg-sender">
+                              {message.sender?.name} {message.sender?.surname}
+                            </div>
+                          )}
 
-                        <div className="msg-time">
-                          {new Date(message.created_at).toLocaleTimeString('ru-RU', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                          <div>{message.text}</div>
+
+                          <div className="msg-time">
+                            {new Date(message.created_at).toLocaleTimeString('ru-RU', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
                         </div>
+
+                        {isMine && (
+                          <Avatar src={currentUser?.avatar_url} size="32px" />
+                        )}
                       </div>
                     );
                   })
@@ -350,10 +479,11 @@ export default function Chat() {
 
                 <button
                   type="submit"
-                  className="btn btn-inline btn-primary"
+                  className="chat-send-button"
                   disabled={!messageText.trim()}
+                  title="Отправить"
                 >
-                  Отправить
+                  <img src="/icons/send.svg" alt="" />
                 </button>
               </form>
             </>

@@ -52,6 +52,8 @@ export const createDirectChat = async (userId) => { const res = await axiosInsta
 export const createGroupChat = async (data) => { const res = await axiosInstance.post('/chats/group', data); return res.data; };
 export const fetchMessages = async (chatId) => { const res = await axiosInstance.get(`/chats/${chatId}/messages`); return res.data; };
 export const sendMessage = async (chatId, text) => { const res = await axiosInstance.post(`/chats/${chatId}/messages`, { text }); return res.data; };
+export const fetchUnreadMessagesCount = async () => { const res = await axiosInstance.get('/messages/unread-count'); return res.data.count; };
+
 export const updateProfile = async (data) => { const res = await axiosInstance.put('/user/profile', data); return res.data; };
 
 export const handleError = (error) => {
@@ -90,6 +92,7 @@ export const api = {
     sendMessage,
     createDirectChat,
     createGroupChat,    
+    fetchUnreadMessagesCount,
     createClub,
     deleteClub,
     toggleClubMembership,

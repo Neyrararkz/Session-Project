@@ -162,6 +162,7 @@ type Chat struct {
 	LastMessage   string       `json:"last_message"`
 	LastMessageAt time.Time    `json:"last_message_at"`
 	CreatedAt     time.Time    `json:"created_at"`
+	UnreadCount   int          `json:"unread_count"`
 }
 
 type Message struct {

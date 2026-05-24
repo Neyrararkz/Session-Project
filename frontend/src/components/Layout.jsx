@@ -8,6 +8,7 @@ export const Layout = ({ children }) => {
   const { user } = useAuth();
   const location = useLocation();
   const [incomingCount, setIncomingCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [headerUser, setHeaderUser] = useState(user);
 
   const loadIncomingCount = async () => {
@@ -19,6 +20,20 @@ export const Layout = ({ children }) => {
     try {
       const requests = await api.fetchIncomingFriendRequests();
       setIncomingCount(requests?.length || 0);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loadUnreadMessagesCount = async () => {
+    if (!user) {
+      setUnreadMessagesCount(0);
+      return;
+    }
+
+    try {
+      const count = await api.fetchUnreadMessagesCount();
+      setUnreadMessagesCount(count || 0);
     } catch (err) {
       console.error(err);
     }
@@ -41,6 +56,7 @@ export const Layout = ({ children }) => {
 
   useEffect(() => {
     loadIncomingCount();
+    loadUnreadMessagesCount();
     loadHeaderUser();
   }, [user, location.pathname]);
 
@@ -53,31 +69,38 @@ export const Layout = ({ children }) => {
       loadHeaderUser();
     };
 
+    const handleChatsUpdated = () => {
+      loadUnreadMessagesCount();
+    };
+
     window.addEventListener('friends-updated', handleFriendsUpdated);
     window.addEventListener('profile-updated', handleProfileUpdated);
+    window.addEventListener('chats-updated', handleChatsUpdated);
+
+    const interval = setInterval(() => {
+      loadUnreadMessagesCount();
+    }, 15000);
 
     return () => {
       window.removeEventListener('friends-updated', handleFriendsUpdated);
       window.removeEventListener('profile-updated', handleProfileUpdated);
+      window.removeEventListener('chats-updated', handleChatsUpdated);
+      clearInterval(interval);
     };
   }, [user]);
 
   if (!user) return <main className="main-content">{children}</main>;
 
-  const friendsLabel = incomingCount > 0
-    ? `👥 Друзья (${incomingCount})`
-    : '👥 Друзья';
-
   const menuItems = [
-    { path: '/', label: '📰 Лента новостей' },
-    { path: '/friends', label: friendsLabel },
-    { path: '/chats', label: '💬 Сообщения' },
-    { path: '/clubs', label: '🏫 Клубы' },
-    { path: '/navigation', label: '🧭 Помощник студента' },
+    { path: '/', label: 'Лента новостей', icon: '/icons/feed.svg' },
+    { path: '/friends', label: 'Друзья', icon: '/icons/friends.svg', badge: incomingCount },
+    { path: '/chats', label: 'Сообщения', icon: '/icons/chat.svg', badge: unreadMessagesCount },
+    { path: '/clubs', label: 'Клубы', icon: '/icons/clubs.svg' },
+    { path: '/navigation', label: 'Помощник студента', icon: '/icons/navigation.svg' },
   ];
 
   if (user.role === 'admin') {
-    menuItems.push({ path: '/admin', label: '🛠️ Админ-панель' });
+    menuItems.push({ path: '/admin', label: 'Админ-панель', icon: '/icons/admin.svg' });
   }
 
   return (
@@ -89,7 +112,10 @@ export const Layout = ({ children }) => {
 
         <div className="top-header-actions">
           <Link to="/chats" className="top-header-icon" title="Сообщения">
-            💬
+            <img src="/icons/chat.svg" alt="" className="top-header-svg-icon" />
+            {unreadMessagesCount > 0 && (
+              <span className="top-header-badge">{unreadMessagesCount}</span>
+            )}
           </Link>
 
           <Link to="/profile" className="top-header-avatar" title="Мой профиль">
@@ -107,7 +133,14 @@ export const Layout = ({ children }) => {
                 to={item.path}
                 className={`nav-link ${location.pathname === item.path ? 'nav-link-active' : ''}`}
               >
-                {item.label}
+                <span className="nav-link-main">
+                  <img src={item.icon} alt="" className="nav-icon" />
+                  <span>{item.label}</span>
+                </span>
+
+                {item.badge > 0 && (
+                  <span className="nav-badge">{item.badge}</span>
+                )}
               </Link>
             ))}
           </nav>

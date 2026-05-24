@@ -1354,6 +1354,7 @@ type mongoMessageDocument struct {
 	SenderID  int                `bson:"sender_id"`
 	Text      string             `bson:"text"`
 	CreatedAt time.Time         `bson:"created_at"`
+	ReadBy    []int              `bson:"read_by"`
 }
 
 func getChatMembersByIDs(ids []int) (map[int]models.ChatMember, error) {
@@ -1456,6 +1457,8 @@ func GetChats(c *gin.Context) {
 	chats := []models.Chat{}
 	allMemberIDs := []int{}
 
+	currentID := userID.(int)
+
 	for cursor.Next(ctx) {
 		var doc mongoChatDocument
 
@@ -1465,6 +1468,20 @@ func GetChats(c *gin.Context) {
 		}
 
 		chat := convertMongoChat(doc)
+
+		unreadCount, err := config.MessageCollection.CountDocuments(ctx, bson.M{
+			"chat_id":   doc.ID,
+			"sender_id": bson.M{"$ne": currentID},
+			"read_by":   bson.M{"$ne": currentID},
+		})
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка подсчета непрочитанных сообщений", "error": err.Error()})
+			return
+		}
+
+		chat.UnreadCount = int(unreadCount)
+
 		chats = append(chats, chat)
 		allMemberIDs = append(allMemberIDs, doc.MemberIDs...)
 	}
@@ -1732,6 +1749,22 @@ func GetMessages(c *gin.Context) {
 		}
 	}
 
+	currentID := userID.(int)
+
+	_, _ = config.MessageCollection.UpdateMany(
+		ctx,
+		bson.M{
+			"chat_id":   chatObjectID,
+			"sender_id": bson.M{"$ne": currentID},
+			"read_by":   bson.M{"$ne": currentID},
+		},
+		bson.M{
+			"$addToSet": bson.M{
+				"read_by": currentID,
+			},
+		},
+	)
+
 	c.JSON(http.StatusOK, messages)
 }
 
@@ -1785,6 +1818,7 @@ func SendMessage(c *gin.Context) {
 		"sender_id":  currentID,
 		"text":       text,
 		"created_at": now,
+		"read_by":    []int{currentID},
 	}
 
 	insertResult, err := config.MessageCollection.InsertOne(ctx, newMessage)
@@ -1825,6 +1859,59 @@ func SendMessage(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, message)
+}
+
+func GetUnreadMessagesCount(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	currentID := userID.(int)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cursor, err := config.ChatCollection.Find(
+		ctx,
+		bson.M{"member_ids": currentID},
+		options.Find().SetProjection(bson.M{"_id": 1}),
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка загрузки чатов", "error": err.Error()})
+		return
+	}
+	defer cursor.Close(ctx)
+
+	chatIDs := []primitive.ObjectID{}
+
+	for cursor.Next(ctx) {
+		var item struct {
+			ID primitive.ObjectID `bson:"_id"`
+		}
+
+		if err := cursor.Decode(&item); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обработки чатов", "error": err.Error()})
+			return
+		}
+
+		chatIDs = append(chatIDs, item.ID)
+	}
+
+	if len(chatIDs) == 0 {
+		c.JSON(http.StatusOK, gin.H{"count": 0})
+		return
+	}
+
+	count, err := config.MessageCollection.CountDocuments(ctx, bson.M{
+		"chat_id":   bson.M{"$in": chatIDs},
+		"sender_id": bson.M{"$ne": currentID},
+		"read_by":   bson.M{"$ne": currentID},
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка подсчета непрочитанных сообщений", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"count": count})
 }
 
 func UploadImage(c *gin.Context) {

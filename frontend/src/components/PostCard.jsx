@@ -260,7 +260,6 @@ export default function PostCard({ post, currentUserId, onDelete, onToggleLike, 
             fontWeight: '500'
           }}
         >
-          <span>💬</span>
           <span>Комментарии ({post.comments_count || 0})</span>
         </button>
       </div>
