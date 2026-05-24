@@ -668,21 +668,50 @@ func UpdateClub(c *gin.Context) {
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, _ = config.ChatCollection.UpdateOne(
+		ctx,
+		bson.M{
+			"type":    "club",
+			"club_id": id,
+		},
+		bson.M{
+			"$set": bson.M{
+				"name":        input.Name,
+				"description": input.Description,
+				"image_url":   input.ImageURL,
+			},
+		},
+	)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Клуб обновлен"})
 }
 
 func DeleteClub(c *gin.Context) {
 	id := c.Param("id")
+
 	_, err := config.DB.Exec(`DELETE FROM clubs WHERE id = $1`, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка удаления клуба"})
 		return
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, _ = config.ChatCollection.DeleteOne(ctx, bson.M{
+		"type":    "club",
+		"club_id": id,
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": "Клуб удален"})
 }
 
 func ToggleClubMembership(c *gin.Context) {
 	userID, _ := c.Get("userID")
+	currentID := userID.(int)
 	clubID := c.Param("id")
 
 	var input models.ToggleClubInput
@@ -692,18 +721,36 @@ func ToggleClubMembership(c *gin.Context) {
 	}
 
 	var err error
+
 	if input.Action == "join" {
-		query := `UPDATE users SET clubs = array_append(COALESCE(clubs, '{}'), $1) WHERE id = $2 AND NOT ($1 = ANY(COALESCE(clubs, '{}')))`
-		_, err = config.DB.Exec(query, clubID, userID)
+		query := `
+			UPDATE users
+			SET clubs = array_append(COALESCE(clubs, '{}'), $1)
+			WHERE id = $2 AND NOT ($1 = ANY(COALESCE(clubs, '{}')))
+		`
+		_, err = config.DB.Exec(query, clubID, currentID)
 	} else if input.Action == "leave" {
-		query := `UPDATE users SET clubs = array_remove(clubs, $1) WHERE id = $2`
-		_, err = config.DB.Exec(query, clubID, userID)
+		query := `
+			UPDATE users
+			SET clubs = array_remove(clubs, $1)
+			WHERE id = $2
+		`
+		_, err = config.DB.Exec(query, clubID, currentID)
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Неизвестное действие"})
+		return
 	}
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка при изменении статуса участия"})
 		return
 	}
+
+	if err := syncClubChatMembership(clubID, currentID, input.Action); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Статус участия изменен, но чат клуба не обновился", "error": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Статус обновлен"})
 }
 
@@ -1415,6 +1462,9 @@ type mongoChatDocument struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty"`
 	Type          string             `bson:"type"`
 	Name          string             `bson:"name"`
+	Description   string             `bson:"description"`
+	ImageURL      string             `bson:"image_url"`
+	ClubID        string             `bson:"club_id"`
 	MemberIDs     []int              `bson:"member_ids"`
 	LastMessage   string             `bson:"last_message"`
 	LastMessageAt time.Time          `bson:"last_message_at"`
@@ -1442,6 +1492,7 @@ func getChatMembersByIDs(ids []int) (map[int]models.ChatMember, error) {
 			id,
 			name,
 			surname,
+			COALESCE(student_group, ''),
 			COALESCE(avatar_url, ''),
 			role
 		FROM users
@@ -1461,6 +1512,7 @@ func getChatMembersByIDs(ids []int) (map[int]models.ChatMember, error) {
 			&member.ID,
 			&member.Name,
 			&member.Surname,
+			&member.Group,
 			&member.AvatarURL,
 			&member.Role,
 		); err != nil {
@@ -1492,6 +1544,9 @@ func convertMongoChat(chatDoc mongoChatDocument) models.Chat {
 		ID:            chatDoc.ID.Hex(),
 		Type:          chatDoc.Type,
 		Name:          chatDoc.Name,
+		Description:   chatDoc.Description,
+		ImageURL:      chatDoc.ImageURL,
+		ClubID:        chatDoc.ClubID,
 		MemberIDs:     chatDoc.MemberIDs,
 		LastMessage:   chatDoc.LastMessage,
 		LastMessageAt: chatDoc.LastMessageAt,
@@ -1643,6 +1698,9 @@ func GetOrCreateDirectChat(c *gin.Context) {
 	newChat := bson.M{
 		"type":            "direct",
 		"name":            "",
+		"description":     "",
+		"image_url":       "",
+		"club_id":         "",
 		"member_ids":      []int{currentID, targetID},
 		"last_message":    "",
 		"last_message_at": now,
@@ -1661,6 +1719,9 @@ func GetOrCreateDirectChat(c *gin.Context) {
 		ID:            objectID.Hex(),
 		Type:          "direct",
 		Name:          "",
+		Description:   "",
+		ImageURL:      "",
+		ClubID:        "",
 		MemberIDs:     []int{currentID, targetID},
 		LastMessage:   "",
 		LastMessageAt: now,
@@ -1720,6 +1781,9 @@ func CreateGroupChat(c *gin.Context) {
 	newChat := bson.M{
 		"type":            "group",
 		"name":            name,
+		"description":     "",
+		"image_url":       "",
+		"club_id":         "",
 		"member_ids":      memberIDs,
 		"last_message":    "",
 		"last_message_at": now,
@@ -1738,6 +1802,9 @@ func CreateGroupChat(c *gin.Context) {
 		ID:            objectID.Hex(),
 		Type:          "group",
 		Name:          name,
+		Description:   "",
+		ImageURL:      "",
+		ClubID:        "",
 		MemberIDs:     memberIDs,
 		Members:       []models.ChatMember{},
 		LastMessage:   "",
@@ -1752,6 +1819,197 @@ func CreateGroupChat(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, chat)
+}
+
+func UpdateChat(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	currentID := userID.(int)
+
+	chatID := c.Param("id")
+
+	chatObjectID, err := primitive.ObjectIDFromHex(chatID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректный чат"})
+		return
+	}
+
+	var input models.UpdateChatInput
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректные данные"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	count, err := config.ChatCollection.CountDocuments(ctx, bson.M{
+		"_id":        chatObjectID,
+		"member_ids": currentID,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка проверки доступа к чату", "error": err.Error()})
+		return
+	}
+
+	if count == 0 {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Нет доступа к этому чату"})
+		return
+	}
+
+	_, err = config.ChatCollection.UpdateOne(
+		ctx,
+		bson.M{"_id": chatObjectID},
+		bson.M{
+			"$set": bson.M{
+				"name":        strings.TrimSpace(input.Name),
+				"description": strings.TrimSpace(input.Description),
+				"image_url":   input.ImageURL,
+			},
+		},
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось обновить чат", "error": err.Error()})
+		return
+	}
+
+	chat, err := getChatWithMembersByObjectID(ctx, chatObjectID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Чат обновлен, но не удалось вернуть новые данные", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Чат обновлен",
+		"chat":    chat,
+	})
+}
+
+func getChatWithMembersByObjectID(ctx context.Context, chatObjectID primitive.ObjectID) (models.Chat, error) {
+	var doc mongoChatDocument
+
+	err := config.ChatCollection.FindOne(ctx, bson.M{"_id": chatObjectID}).Decode(&doc)
+	if err != nil {
+		return models.Chat{}, err
+	}
+
+	chat := convertMongoChat(doc)
+
+	membersMap, err := getChatMembersByIDs(chat.MemberIDs)
+	if err != nil {
+		return models.Chat{}, err
+	}
+
+	chat.Members = []models.ChatMember{}
+
+	for _, id := range chat.MemberIDs {
+		if member, ok := membersMap[id]; ok {
+			chat.Members = append(chat.Members, member)
+		}
+	}
+
+	return chat, nil
+}
+
+func syncClubChatMembership(clubID string, userID int, action string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if action == "leave" {
+		_, err := config.ChatCollection.UpdateOne(
+			ctx,
+			bson.M{
+				"type":    "club",
+				"club_id": clubID,
+			},
+			bson.M{
+				"$pull": bson.M{
+					"member_ids": userID,
+				},
+			},
+		)
+
+		return err
+	}
+
+	clubIntID, err := strconv.Atoi(clubID)
+	if err != nil {
+		return err
+	}
+
+	var club models.Club
+
+	query := `
+		SELECT
+			id,
+			name,
+			COALESCE(description, ''),
+			COALESCE(image_url, '')
+		FROM clubs
+		WHERE id = $1
+	`
+
+	err = config.DB.QueryRow(query, clubIntID).Scan(
+		&club.ID,
+		&club.Name,
+		&club.Description,
+		&club.ImageURL,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	var existing mongoChatDocument
+
+	err = config.ChatCollection.FindOne(ctx, bson.M{
+		"type":    "club",
+		"club_id": clubID,
+	}).Decode(&existing)
+
+	if err == mongo.ErrNoDocuments {
+		now := time.Now()
+
+		_, err = config.ChatCollection.InsertOne(ctx, bson.M{
+			"type":            "club",
+			"name":            club.Name,
+			"description":     club.Description,
+			"image_url":       club.ImageURL,
+			"club_id":         clubID,
+			"member_ids":      []int{userID},
+			"last_message":    "",
+			"last_message_at": now,
+			"created_at":      now,
+		})
+
+		return err
+	}
+
+	if err != nil {
+		return err
+	}
+
+	_, err = config.ChatCollection.UpdateOne(
+		ctx,
+		bson.M{
+			"type":    "club",
+			"club_id": clubID,
+		},
+		bson.M{
+			"$addToSet": bson.M{
+				"member_ids": userID,
+			},
+			"$set": bson.M{
+				"name":        club.Name,
+				"description": club.Description,
+				"image_url":   club.ImageURL,
+			},
+		},
+	)
+
+	return err
 }
 
 func GetMessages(c *gin.Context) {

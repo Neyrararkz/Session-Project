@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api, handleError } from '../api';
 import Avatar from '../components/Avatar';
 
@@ -21,6 +22,14 @@ export default function Chat() {
   const [userSearchStatuses, setUserSearchStatuses] = useState({});
   const [userSearchLoading, setUserSearchLoading] = useState(false);
   const [friendRequestLoadingId, setFriendRequestLoadingId] = useState(null);
+
+  const [showChatSettings, setShowChatSettings] = useState(false);
+  const [settingsName, setSettingsName] = useState('');
+  const [settingsDescription, setSettingsDescription] = useState('');
+  const [settingsImageFile, setSettingsImageFile] = useState(null);
+  const [settingsImageURL, setSettingsImageURL] = useState('');
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [memberStatuses, setMemberStatuses] = useState({});
 
   const loadInitialData = async () => {
     try {
@@ -45,8 +54,10 @@ export default function Chat() {
       const chatsData = await api.fetchChats();
       setChats(chatsData || []);
       window.dispatchEvent(new Event('chats-updated'));
+      return chatsData || [];
     } catch (err) {
       handleError(err);
+      return [];
     }
   };
 
@@ -97,6 +108,25 @@ export default function Chat() {
     }
   };
 
+  const loadMemberStatuses = async (chat) => {
+    if (!chat || !currentUser || !chat.members) return;
+
+    const statuses = {};
+
+    await Promise.all(chat.members.map(async (member) => {
+      if (member.id === currentUser.id) return;
+
+      try {
+        const status = await api.getFriendshipStatus(member.id);
+        statuses[member.id] = status;
+      } catch (err) {
+        statuses[member.id] = null;
+      }
+    }));
+
+    setMemberStatuses(statuses);
+  };
+
   useEffect(() => {
     loadInitialData();
   }, []);
@@ -109,6 +139,12 @@ export default function Chat() {
     return () => clearTimeout(timeout);
   }, [userSearch]);
 
+  useEffect(() => {
+    if (showChatSettings && selectedChat) {
+      loadMemberStatuses(selectedChat);
+    }
+  }, [showChatSettings, selectedChat]);
+
   const getOtherMember = (chat) => {
     if (!currentUser || !chat?.members) return null;
     return chat.members.find(member => member.id !== currentUser.id) || null;
@@ -117,8 +153,8 @@ export default function Chat() {
   const getChatTitle = (chat) => {
     if (!chat) return '';
 
-    if (chat.type === 'group') {
-      return chat.name || 'Групповой чат';
+    if (chat.type === 'group' || chat.type === 'club') {
+      return chat.name || (chat.type === 'club' ? 'Чат клуба' : 'Групповой чат');
     }
 
     const other = getOtherMember(chat);
@@ -129,6 +165,10 @@ export default function Chat() {
 
   const getChatSubtitle = (chat) => {
     if (!chat) return '';
+
+    if (chat.type === 'club') {
+      return `${chat.members?.length || 0} участников клуба`;
+    }
 
     if (chat.type === 'group') {
       return `${chat.members?.length || 0} участников`;
@@ -143,7 +183,12 @@ export default function Chat() {
   };
 
   const getChatAvatar = (chat) => {
-    if (!chat || chat.type === 'group') return '';
+    if (!chat) return '';
+
+    if (chat.type === 'group' || chat.type === 'club') {
+      return chat.image_url || '';
+    }
+
     return getOtherMember(chat)?.avatar_url || '';
   };
 
@@ -161,8 +206,14 @@ export default function Chat() {
 
   const handleSelectChat = async (chat) => {
     setSelectedChat(chat);
+    setShowChatSettings(false);
     await loadMessages(chat.id);
-    await loadChats();
+    const updatedChats = await loadChats();
+    const freshChat = updatedChats.find(item => item.id === chat.id);
+
+    if (freshChat) {
+      setSelectedChat(freshChat);
+    }
   };
 
   const handleStartDirectChat = async (userId) => {
@@ -187,6 +238,14 @@ export default function Chat() {
       await api.sendFriendRequest(userId);
 
       setUserSearchStatuses(prev => ({
+        ...prev,
+        [userId]: {
+          status: 'outgoing_pending',
+          request_id: 0
+        }
+      }));
+
+      setMemberStatuses(prev => ({
         ...prev,
         [userId]: {
           status: 'outgoing_pending',
@@ -232,6 +291,50 @@ export default function Chat() {
       await loadMessages(chat.id);
     } catch (err) {
       handleError(err);
+    }
+  };
+
+  const openChatSettings = () => {
+    if (!selectedChat || selectedChat.type === 'direct') return;
+
+    setSettingsName(selectedChat.name || '');
+    setSettingsDescription(selectedChat.description || '');
+    setSettingsImageURL(selectedChat.image_url || '');
+    setSettingsImageFile(null);
+    setShowChatSettings(true);
+  };
+
+  const handleSaveChatSettings = async (e) => {
+    e.preventDefault();
+
+    if (!selectedChat) return;
+
+    try {
+      setSettingsSaving(true);
+
+      let imageURL = settingsImageURL;
+
+      if (settingsImageFile) {
+        imageURL = await api.uploadImage(settingsImageFile);
+      }
+
+      const response = await api.updateChat(selectedChat.id, {
+        name: settingsName,
+        description: settingsDescription,
+        image_url: imageURL
+      });
+
+      if (response.chat) {
+        setSelectedChat(response.chat);
+        setChats(prev => prev.map(chat => chat.id === response.chat.id ? response.chat : chat));
+      }
+
+      setShowChatSettings(false);
+      window.dispatchEvent(new Event('chats-updated'));
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setSettingsSaving(false);
     }
   };
 
@@ -334,8 +437,14 @@ export default function Chat() {
                     className={`chat-list-item ${selectedChat?.id === chat.id ? 'chat-list-item-active' : ''}`}
                     onClick={() => handleSelectChat(chat)}
                   >
-                    {chat.type === 'group' ? (
-                      <div className="chat-group-avatar">#</div>
+                    {chat.type === 'group' || chat.type === 'club' ? (
+                      getChatAvatar(chat) ? (
+                        <Avatar src={getChatAvatar(chat)} size="40px" />
+                      ) : (
+                        <div className="chat-group-avatar">
+                          {chat.type === 'club' ? 'C' : '#'}
+                        </div>
+                      )
                     ) : (
                       <Avatar src={getChatAvatar(chat)} size="40px" />
                     )}
@@ -413,12 +522,20 @@ export default function Chat() {
             </div>
           ) : (
             <>
-              <div className="chat-header">
+              <button
+                type="button"
+                className={`chat-header ${selectedChat.type !== 'direct' ? 'chat-header-clickable' : ''}`}
+                onClick={openChatSettings}
+              >
+                {selectedChat.type !== 'direct' && getChatAvatar(selectedChat) && (
+                  <Avatar src={getChatAvatar(selectedChat)} size="42px" />
+                )}
+
                 <div>
                   <h3>{getChatTitle(selectedChat)}</h3>
                   <p>{getChatSubtitle(selectedChat)}</p>
                 </div>
-              </div>
+              </button>
 
               <div className="chat-messages">
                 {messagesLoading ? (
@@ -485,6 +602,117 @@ export default function Chat() {
           )}
         </main>
       </div>
+
+      {showChatSettings && selectedChat && (
+        <div className="chat-settings-overlay" onClick={() => setShowChatSettings(false)}>
+          <div className="chat-settings-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="chat-settings-header">
+              <div>
+                <h3>Настройки чата</h3>
+                <p>{selectedChat.type === 'club' ? 'Чат клуба' : 'Групповой чат'}</p>
+              </div>
+
+              <button
+                type="button"
+                className="chat-settings-close"
+                onClick={() => setShowChatSettings(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveChatSettings} className="chat-settings-form">
+              <div className="chat-settings-image-row">
+                <Avatar
+                  src={settingsImageFile ? URL.createObjectURL(settingsImageFile) : settingsImageURL}
+                  size="72px"
+                />
+
+                <div className="form-group">
+                  <label className="form-label">Картинка чата</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="form-input"
+                    onChange={(e) => setSettingsImageFile(e.target.files[0])}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Название</label>
+                <input
+                  className="form-input"
+                  value={settingsName}
+                  onChange={(e) => setSettingsName(e.target.value)}
+                  placeholder="Название чата"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Описание</label>
+                <textarea
+                  className="form-input"
+                  rows="3"
+                  value={settingsDescription}
+                  onChange={(e) => setSettingsDescription(e.target.value)}
+                  placeholder="Описание чата"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={settingsSaving || !settingsName.trim()}
+              >
+                {settingsSaving ? 'Сохранение...' : 'Сохранить настройки'}
+              </button>
+            </form>
+
+            <div className="chat-settings-members">
+              <h4>Участники ({selectedChat.members?.length || 0})</h4>
+
+              <div className="chat-settings-members-list">
+                {(selectedChat.members || []).map(member => (
+                  <div key={member.id} className="chat-settings-member">
+                    <Link to={`/profile/${member.id}`} className="chat-settings-member-main">
+                      <Avatar src={member.avatar_url} size="38px" />
+
+                      <div>
+                        <span>{member.name} {member.surname}</span>
+                        <small>
+                          {member.role === 'teacher'
+                            ? 'Преподаватель'
+                            : member.role === 'admin'
+                              ? 'Администратор'
+                              : member.group || 'Студент'}
+                        </small>
+                      </div>
+                    </Link>
+
+                    {currentUser?.id !== member.id &&
+                      !friendIds.has(member.id) &&
+                      memberStatuses[member.id]?.status === 'none' && (
+                        <button
+                          type="button"
+                          className="chat-add-friend-button"
+                          onClick={(e) => handleSendFriendRequest(e, member.id)}
+                          title="Добавить в друзья"
+                        >
+                          {friendRequestLoadingId === member.id ? (
+                            <span className="chat-add-friend-loading">...</span>
+                          ) : (
+                            <img src="/icons/add-friend.svg" alt="" />
+                          )}
+                        </button>
+                      )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

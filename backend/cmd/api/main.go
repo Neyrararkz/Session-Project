@@ -72,6 +72,7 @@ func main() {
 			protected.GET("/messages/unread-count", handlers.GetUnreadMessagesCount)
 			protected.POST("/chats/direct/:id", handlers.GetOrCreateDirectChat)
 			protected.POST("/chats/group", handlers.CreateGroupChat)
+			protected.PUT("/chats/:id", handlers.UpdateChat)
 			protected.GET("/chats/:id/messages", handlers.GetMessages)
 			protected.POST("/chats/:id/messages", handlers.SendMessage)
 

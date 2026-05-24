@@ -103,6 +103,33 @@ export default function Clubs() {
     }
   };
 
+  const startEditClub = async (e, club) => {
+    e.stopPropagation();
+
+    setSelectedClub(club);
+    setEditClub({
+      name: club.name,
+      description: club.description,
+      meeting_time: club.meeting_time,
+      contacts: club.contacts,
+      image_url: club.image_url || '',
+    });
+    setEditImageFile(null);
+    setIsDetailEditing(true);
+    setView('detail');
+    setReplyingTo(null);
+    setReplyText('');
+    setNewComment('');
+
+    try {
+      const coms = await api.fetchClubComments(club.id);
+      setComments(coms || []);
+      await loadClubMembers(club.id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleToggleMembership = async (e, clubId, currentAction) => {
     e.stopPropagation();
     try {
@@ -190,20 +217,19 @@ export default function Clubs() {
   const getRepliesFor = (parentId) => comments.filter(c => c.parent_id === parentId);
 
   if (view === 'detail' && selectedClub) {
-    const isMember = userClubs.includes(String(selectedClub.id));
+  const isMember = userClubs.includes(String(selectedClub.id));
     
-    return (
-      <div>
+  return (
+    <div className="clubs-detail-shell">
         <button 
-          onClick={() => { 
-            setView('list'); 
-            setIsDetailEditing(false); 
-          }} 
-          className="btn btn-inline btn-secondary" 
-          style={{ marginBottom: '1.5rem' }}
-        >
-          ← Назад к списку
-        </button>
+  onClick={() => { 
+    setView('list'); 
+    setIsDetailEditing(false); 
+  }} 
+  className="btn btn-inline btn-secondary clubs-detail-back"
+>
+  ← Назад к списку
+</button>
         
         {isDetailEditing ? (
           <form onSubmit={handleUpdateClub} className="card" style={{ marginBottom: '2rem', border: '2px solid var(--primary)' }}>
@@ -248,16 +274,9 @@ export default function Clubs() {
                 placeholder="Контакты" 
               />
             </div>
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+            <div className="club-edit-actions">
               <button type="submit" className="btn btn-success">Сохранить</button>
               <button type="button" className="btn btn-secondary" onClick={() => setIsDetailEditing(false)}>Отмена</button>
-              <button 
-                type="button" 
-                className="btn btn-danger" 
-                onClick={(e) => handleDeleteClub(e, selectedClub.id)}
-              >
-                Удалить клуб
-              </button>
             </div>
           </form>
         ) : (
@@ -275,21 +294,25 @@ export default function Clubs() {
               </h2>
 
               {isAdmin ? (
-                <button
-                  className="btn btn-inline btn-primary"
-                  onClick={() => {
-                    setEditClub({
-                      name: selectedClub.name,
-                      description: selectedClub.description,
-                      meeting_time: selectedClub.meeting_time,
-                      contacts: selectedClub.contacts,
-                      image_url: selectedClub.image_url || '',
-                    });
-                    setIsDetailEditing(true); 
-                  }}
-                >
-                  Редактировать
-                </button>
+                <div className="club-admin-actions">
+                  <button
+                    type="button"
+                    className="post-icon-action"
+                    onClick={(e) => startEditClub(e, selectedClub)}
+                    title="Редактировать"
+                  >
+                    <img src="/icons/edit.svg" alt="" />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="post-icon-action post-icon-action-danger"
+                    onClick={(e) => handleDeleteClub(e, selectedClub.id)}
+                    title="Удалить"
+                  >
+                    <img src="/icons/delete.svg" alt="" />
+                  </button>
+                </div>
               ) : (
                 <button
                   onClick={(e) => handleToggleMembership(e, selectedClub.id, isMember ? 'leave' : 'join')}
@@ -740,13 +763,7 @@ export default function Clubs() {
                   </p>
                 </div>
               </div>
-              <div
-                className="flex-between"
-                style={{
-                  padding: '0 1.5rem 1.5rem 1.5rem',
-                  justifyContent: isAdmin ? 'flex-end' : 'space-between',
-                }}
-              >
+              <div className="club-card-footer-row">
                 {!isAdmin && (
                   <span
                     className={`badge ${isMember ? '' : 'bg-gray'}`}
@@ -761,6 +778,28 @@ export default function Clubs() {
                   >
                     {isMember ? 'Вы состоите' : 'Вы не состоите'}
                   </span>
+                )}
+
+                {isAdmin && (
+                  <div className="club-admin-actions">
+                    <button
+                      type="button"
+                      className="post-icon-action"
+                      onClick={(e) => startEditClub(e, club)}
+                      title="Редактировать"
+                    >
+                      <img src="/icons/edit.svg" alt="" />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="post-icon-action post-icon-action-danger"
+                      onClick={(e) => handleDeleteClub(e, club.id)}
+                      title="Удалить"
+                    >
+                      <img src="/icons/delete.svg" alt="" />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

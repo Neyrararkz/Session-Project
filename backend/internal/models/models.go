@@ -155,6 +155,7 @@ type ChatMember struct {
 	ID        int    `json:"id"`
 	Name      string `json:"name"`
 	Surname   string `json:"surname"`
+	Group     string `json:"group"`
 	AvatarURL string `json:"avatar_url"`
 	Role      string `json:"role"`
 }
@@ -163,12 +164,21 @@ type Chat struct {
 	ID            string       `json:"id"`
 	Type          string       `json:"type"`
 	Name          string       `json:"name"`
+	Description   string       `json:"description"`
+	ImageURL      string       `json:"image_url"`
+	ClubID        string       `json:"club_id"`
 	MemberIDs     []int        `json:"member_ids"`
 	Members       []ChatMember `json:"members"`
 	LastMessage   string       `json:"last_message"`
 	LastMessageAt time.Time    `json:"last_message_at"`
 	CreatedAt     time.Time    `json:"created_at"`
 	UnreadCount   int          `json:"unread_count"`
+}
+
+type UpdateChatInput struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ImageURL    string `json:"image_url"`
 }
 
 type Message struct {
