@@ -9,10 +9,17 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"context"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func Register(c *gin.Context) {
@@ -1331,16 +1338,493 @@ func SearchUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
+type mongoChatDocument struct {
+	ID            primitive.ObjectID `bson:"_id,omitempty"`
+	Type          string             `bson:"type"`
+	Name          string             `bson:"name"`
+	MemberIDs     []int              `bson:"member_ids"`
+	LastMessage   string             `bson:"last_message"`
+	LastMessageAt time.Time          `bson:"last_message_at"`
+	CreatedAt     time.Time          `bson:"created_at"`
+}
+
+type mongoMessageDocument struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	ChatID    primitive.ObjectID `bson:"chat_id"`
+	SenderID  int                `bson:"sender_id"`
+	Text      string             `bson:"text"`
+	CreatedAt time.Time         `bson:"created_at"`
+}
+
+func getChatMembersByIDs(ids []int) (map[int]models.ChatMember, error) {
+	result := map[int]models.ChatMember{}
+
+	if len(ids) == 0 {
+		return result, nil
+	}
+
+	query := `
+		SELECT
+			id,
+			name,
+			surname,
+			COALESCE(avatar_url, ''),
+			role
+		FROM users
+		WHERE id = ANY($1)
+	`
+
+	rows, err := config.DB.Query(query, pq.Array(ids))
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var member models.ChatMember
+
+		if err := rows.Scan(
+			&member.ID,
+			&member.Name,
+			&member.Surname,
+			&member.AvatarURL,
+			&member.Role,
+		); err != nil {
+			return result, err
+		}
+
+		result[member.ID] = member
+	}
+
+	return result, nil
+}
+
+func uniqueIntSlice(items []int) []int {
+	seen := map[int]bool{}
+	result := []int{}
+
+	for _, item := range items {
+		if !seen[item] {
+			seen[item] = true
+			result = append(result, item)
+		}
+	}
+
+	return result
+}
+
+func convertMongoChat(chatDoc mongoChatDocument) models.Chat {
+	return models.Chat{
+		ID:            chatDoc.ID.Hex(),
+		Type:          chatDoc.Type,
+		Name:          chatDoc.Name,
+		MemberIDs:     chatDoc.MemberIDs,
+		LastMessage:   chatDoc.LastMessage,
+		LastMessageAt: chatDoc.LastMessageAt,
+		CreatedAt:     chatDoc.CreatedAt,
+	}
+}
+
+func convertMongoMessage(messageDoc mongoMessageDocument) models.Message {
+	return models.Message{
+		ID:        messageDoc.ID.Hex(),
+		ChatID:    messageDoc.ChatID.Hex(),
+		SenderID:  messageDoc.SenderID,
+		Text:      messageDoc.Text,
+		CreatedAt: messageDoc.CreatedAt,
+	}
+}
+
 func GetChats(c *gin.Context) {
-	c.JSON(http.StatusOK, []gin.H{})
+	userID, _ := c.Get("userID")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	opts := options.Find().SetSort(bson.D{{Key: "last_message_at", Value: -1}})
+
+	cursor, err := config.ChatCollection.Find(ctx, bson.M{
+		"member_ids": userID,
+	}, opts)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка загрузки чатов", "error": err.Error()})
+		return
+	}
+	defer cursor.Close(ctx)
+
+	chats := []models.Chat{}
+	allMemberIDs := []int{}
+
+	for cursor.Next(ctx) {
+		var doc mongoChatDocument
+
+		if err := cursor.Decode(&doc); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обработки чатов", "error": err.Error()})
+			return
+		}
+
+		chat := convertMongoChat(doc)
+		chats = append(chats, chat)
+		allMemberIDs = append(allMemberIDs, doc.MemberIDs...)
+	}
+
+	membersMap, err := getChatMembersByIDs(uniqueIntSlice(allMemberIDs))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка загрузки участников чатов", "error": err.Error()})
+		return
+	}
+
+	for i := range chats {
+		chats[i].Members = []models.ChatMember{}
+
+		for _, id := range chats[i].MemberIDs {
+			if member, ok := membersMap[id]; ok {
+				chats[i].Members = append(chats[i].Members, member)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, chats)
+}
+
+func GetOrCreateDirectChat(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	targetIDStr := c.Param("id")
+
+	currentID := userID.(int)
+
+	targetID, err := strconv.Atoi(targetIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректный пользователь"})
+		return
+	}
+
+	if currentID == targetID {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Нельзя создать чат с самим собой"})
+		return
+	}
+
+	membersMap, err := getChatMembersByIDs([]int{currentID, targetID})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка проверки пользователей", "error": err.Error()})
+		return
+	}
+
+	if _, ok := membersMap[targetID]; !ok {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Пользователь не найден"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.M{
+		"type": "direct",
+		"member_ids": bson.M{
+			"$all": []int{currentID, targetID},
+		},
+	}
+
+	var existing mongoChatDocument
+
+	err = config.ChatCollection.FindOne(ctx, filter).Decode(&existing)
+
+	if err == nil {
+		chat := convertMongoChat(existing)
+
+		for _, id := range chat.MemberIDs {
+			if member, ok := membersMap[id]; ok {
+				chat.Members = append(chat.Members, member)
+			}
+		}
+
+		c.JSON(http.StatusOK, chat)
+		return
+	}
+
+	if err != mongo.ErrNoDocuments {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка поиска чата", "error": err.Error()})
+		return
+	}
+
+	now := time.Now()
+
+	newChat := bson.M{
+		"type":            "direct",
+		"name":            "",
+		"member_ids":      []int{currentID, targetID},
+		"last_message":    "",
+		"last_message_at": now,
+		"created_at":      now,
+	}
+
+	insertResult, err := config.ChatCollection.InsertOne(ctx, newChat)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка создания чата", "error": err.Error()})
+		return
+	}
+
+	objectID := insertResult.InsertedID.(primitive.ObjectID)
+
+	chat := models.Chat{
+		ID:            objectID.Hex(),
+		Type:          "direct",
+		Name:          "",
+		MemberIDs:     []int{currentID, targetID},
+		LastMessage:   "",
+		LastMessageAt: now,
+		CreatedAt:     now,
+		Members:       []models.ChatMember{},
+	}
+
+	for _, id := range chat.MemberIDs {
+		if member, ok := membersMap[id]; ok {
+			chat.Members = append(chat.Members, member)
+		}
+	}
+
+	c.JSON(http.StatusCreated, chat)
+}
+
+func CreateGroupChat(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	currentID := userID.(int)
+
+	var input models.CreateGroupChatInput
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Введите название и участников чата"})
+		return
+	}
+
+	name := strings.TrimSpace(input.Name)
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Название чата не может быть пустым"})
+		return
+	}
+
+	memberIDs := uniqueIntSlice(append(input.MemberIDs, currentID))
+
+	if len(memberIDs) < 2 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Для группового чата нужен минимум один собеседник"})
+		return
+	}
+
+	membersMap, err := getChatMembersByIDs(memberIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка проверки участников", "error": err.Error()})
+		return
+	}
+
+	if len(membersMap) != len(memberIDs) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Некоторые участники не найдены"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	now := time.Now()
+
+	newChat := bson.M{
+		"type":            "group",
+		"name":            name,
+		"member_ids":      memberIDs,
+		"last_message":    "",
+		"last_message_at": now,
+		"created_at":      now,
+	}
+
+	insertResult, err := config.ChatCollection.InsertOne(ctx, newChat)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось создать групповой чат", "error": err.Error()})
+		return
+	}
+
+	objectID := insertResult.InsertedID.(primitive.ObjectID)
+
+	chat := models.Chat{
+		ID:            objectID.Hex(),
+		Type:          "group",
+		Name:          name,
+		MemberIDs:     memberIDs,
+		Members:       []models.ChatMember{},
+		LastMessage:   "",
+		LastMessageAt: now,
+		CreatedAt:     now,
+	}
+
+	for _, id := range memberIDs {
+		if member, ok := membersMap[id]; ok {
+			chat.Members = append(chat.Members, member)
+		}
+	}
+
+	c.JSON(http.StatusCreated, chat)
 }
 
 func GetMessages(c *gin.Context) {
-	c.JSON(http.StatusOK, []gin.H{})
+	userID, _ := c.Get("userID")
+	chatID := c.Param("id")
+
+	chatObjectID, err := primitive.ObjectIDFromHex(chatID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректный чат"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	count, err := config.ChatCollection.CountDocuments(ctx, bson.M{
+		"_id":        chatObjectID,
+		"member_ids": userID,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка проверки доступа к чату", "error": err.Error()})
+		return
+	}
+
+	if count == 0 {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Нет доступа к этому чату"})
+		return
+	}
+
+	opts := options.Find().SetSort(bson.D{{Key: "created_at", Value: 1}})
+
+	cursor, err := config.MessageCollection.Find(ctx, bson.M{
+		"chat_id": chatObjectID,
+	}, opts)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка загрузки сообщений", "error": err.Error()})
+		return
+	}
+	defer cursor.Close(ctx)
+
+	messages := []models.Message{}
+	senderIDs := []int{}
+
+	for cursor.Next(ctx) {
+		var doc mongoMessageDocument
+
+		if err := cursor.Decode(&doc); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка обработки сообщений", "error": err.Error()})
+			return
+		}
+
+		message := convertMongoMessage(doc)
+		messages = append(messages, message)
+		senderIDs = append(senderIDs, doc.SenderID)
+	}
+
+	membersMap, err := getChatMembersByIDs(uniqueIntSlice(senderIDs))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка загрузки авторов сообщений", "error": err.Error()})
+		return
+	}
+
+	for i := range messages {
+		if sender, ok := membersMap[messages[i].SenderID]; ok {
+			messages[i].Sender = sender
+		}
+	}
+
+	c.JSON(http.StatusOK, messages)
 }
 
 func SendMessage(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Сообщение отправлено"})
+	userID, _ := c.Get("userID")
+	chatID := c.Param("id")
+
+	currentID := userID.(int)
+
+	chatObjectID, err := primitive.ObjectIDFromHex(chatID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Некорректный чат"})
+		return
+	}
+
+	var input models.SendMessageInput
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Сообщение не может быть пустым"})
+		return
+	}
+
+	text := strings.TrimSpace(input.Text)
+	if text == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Сообщение не может быть пустым"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	count, err := config.ChatCollection.CountDocuments(ctx, bson.M{
+		"_id":        chatObjectID,
+		"member_ids": currentID,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка проверки доступа к чату", "error": err.Error()})
+		return
+	}
+
+	if count == 0 {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Нет доступа к этому чату"})
+		return
+	}
+
+	now := time.Now()
+
+	newMessage := bson.M{
+		"chat_id":    chatObjectID,
+		"sender_id":  currentID,
+		"text":       text,
+		"created_at": now,
+	}
+
+	insertResult, err := config.MessageCollection.InsertOne(ctx, newMessage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось отправить сообщение", "error": err.Error()})
+		return
+	}
+
+	_, err = config.ChatCollection.UpdateOne(
+		ctx,
+		bson.M{"_id": chatObjectID},
+		bson.M{
+			"$set": bson.M{
+				"last_message":    text,
+				"last_message_at": now,
+			},
+		},
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Сообщение сохранено, но чат не обновился", "error": err.Error()})
+		return
+	}
+
+	membersMap, err := getChatMembersByIDs([]int{currentID})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Ошибка загрузки отправителя", "error": err.Error()})
+		return
+	}
+
+	message := models.Message{
+		ID:        insertResult.InsertedID.(primitive.ObjectID).Hex(),
+		ChatID:    chatObjectID.Hex(),
+		SenderID:  currentID,
+		Text:      text,
+		CreatedAt: now,
+		Sender:    membersMap[currentID],
+	}
+
+	c.JSON(http.StatusCreated, message)
 }
 
 func UploadImage(c *gin.Context) {

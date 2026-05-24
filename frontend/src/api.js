@@ -48,9 +48,10 @@ export const deleteFriendRequest = async (id) => { const res = await axiosInstan
 export const removeFriend = async (id) => { const res = await axiosInstance.delete(`/friends/${id}`); return res.data; };
 
 export const fetchChats = async () => { const res = await axiosInstance.get('/chats'); return res.data; };
+export const createDirectChat = async (userId) => { const res = await axiosInstance.post(`/chats/direct/${userId}`); return res.data; };
+export const createGroupChat = async (data) => { const res = await axiosInstance.post('/chats/group', data); return res.data; };
 export const fetchMessages = async (chatId) => { const res = await axiosInstance.get(`/chats/${chatId}/messages`); return res.data; };
 export const sendMessage = async (chatId, text) => { const res = await axiosInstance.post(`/chats/${chatId}/messages`, { text }); return res.data; };
-
 export const updateProfile = async (data) => { const res = await axiosInstance.put('/user/profile', data); return res.data; };
 
 export const handleError = (error) => {
@@ -87,6 +88,8 @@ export const api = {
     fetchChats, 
     fetchMessages, 
     sendMessage,
+    createDirectChat,
+    createGroupChat,    
     createClub,
     deleteClub,
     toggleClubMembership,

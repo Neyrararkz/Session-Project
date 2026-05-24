@@ -144,3 +144,40 @@ type FriendshipStatus struct {
 	Status    string `json:"status"`
 	RequestID int    `json:"request_id"`
 }
+
+type ChatMember struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	Surname   string `json:"surname"`
+	AvatarURL string `json:"avatar_url"`
+	Role      string `json:"role"`
+}
+
+type Chat struct {
+	ID            string       `json:"id"`
+	Type          string       `json:"type"`
+	Name          string       `json:"name"`
+	MemberIDs     []int        `json:"member_ids"`
+	Members       []ChatMember `json:"members"`
+	LastMessage   string       `json:"last_message"`
+	LastMessageAt time.Time    `json:"last_message_at"`
+	CreatedAt     time.Time    `json:"created_at"`
+}
+
+type Message struct {
+	ID        string     `json:"id"`
+	ChatID    string     `json:"chat_id"`
+	SenderID  int        `json:"sender_id"`
+	Sender    ChatMember `json:"sender"`
+	Text      string     `json:"text"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type SendMessageInput struct {
+	Text string `json:"text" binding:"required"`
+}
+
+type CreateGroupChatInput struct {
+	Name      string `json:"name" binding:"required"`
+	MemberIDs []int  `json:"member_ids" binding:"required"`
+}
