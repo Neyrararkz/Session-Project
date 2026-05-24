@@ -52,6 +52,12 @@ type CreatePostInput struct {
 	ImageURLs []string `json:"image_urls"`
 }
 
+type UpdatePostInput struct {
+	Title     string   `json:"title" binding:"required"`
+	Content   string   `json:"content" binding:"required"`
+	ImageURLs []string `json:"image_urls"`
+}
+
 type PostComment struct {
 	ID            int    `json:"id"`
 	PostID        int    `json:"post_id"`

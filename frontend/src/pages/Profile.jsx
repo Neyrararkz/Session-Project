@@ -138,6 +138,16 @@ const handleToggleLike = async (postId, isLikedNow) => {
   }
 };
 
+const handleUpdatePost = (updatedPost) => {
+  setPosts(prevPosts => prevPosts.map(post => {
+    if (post.id === updatedPost.id) {
+      return updatedPost;
+    }
+
+    return post;
+  }));
+};
+
 const handleDeletePost = async (postId) => {
   if (!window.confirm('Вы уверены, что хотите удалить этот пост?')) return;
 
@@ -485,6 +495,7 @@ const renderFriendshipButton = () => {
                 onDelete={isOwnProfile ? handleDeletePost : null}
                 onToggleLike={handleToggleLike}
                 onCommentAdded={handleCommentAddedLocally}
+                onUpdate={handleUpdatePost}
               />
             ))}
           </div>

@@ -23,6 +23,7 @@ export const uploadImage = async (file) => { const formData = new FormData(); fo
 
 export const fetchPosts = async () => { const res = await axiosInstance.get('/posts'); return res.data; };
 export const createPost = async (postData) => { const res = await axiosInstance.post('/posts', postData); return res.data; };
+export const updatePost = async (id, data) => { const res = await axiosInstance.put(`/posts/${id}`, data); return res.data; };
 export const deletePost = async (id) => { const res = await axiosInstance.delete(`/posts/${id}`); return res.data; };
 export const getPostComments = async (postId) => { const res = await axiosInstance.get(`/posts/${postId}/comments`); return res.data; };
 export const addPostComment = async (postId, content, parentId = null) => { const res = await axiosInstance.post(`/posts/${postId}/comments`, { content, parent_id: parentId }); return res.data; };
@@ -77,6 +78,7 @@ export const api = {
     updateProfile,
     fetchPosts, 
     createPost, 
+    updatePost,
     deletePost, 
     getPostComments,
     addPostComment,

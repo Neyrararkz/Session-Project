@@ -229,7 +229,7 @@ export default function Friends() {
           <input
             type="text"
             className="form-input page-search-input"
-            placeholder="Поиск пользователей"
+            placeholder="Найти пользователя..."
             value={userSearch}
             onChange={(e) => setUserSearch(e.target.value)}
           />

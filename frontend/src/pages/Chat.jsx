@@ -259,9 +259,6 @@ export default function Chat() {
       <div className="chat-page-header">
         <div>
           <h1 className="page-title">Сообщения</h1>
-          <p className="chat-page-subtitle">
-            Личные и групповые переписки внутри ITSTEP Social
-          </p>
         </div>
       </div>
 
@@ -269,11 +266,9 @@ export default function Chat() {
         <aside className="chat-sidebar">
           <div className="chat-sidebar-scroll">
             <div className="chat-sidebar-section chat-search-section">
-              <h3 className="chat-sidebar-title">Поиск</h3>
-
               <input
                 className="form-input chat-user-search-input"
-                placeholder="Найти пользователя"
+                placeholder="Найти пользователя..."
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
               />

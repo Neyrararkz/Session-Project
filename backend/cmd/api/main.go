@@ -43,6 +43,7 @@ func main() {
 
 			protected.GET("/posts", handlers.GetPosts)
 			protected.POST("/posts", handlers.CreatePost)
+			protected.PUT("/posts/:id", handlers.UpdatePost)
 			protected.DELETE("/posts/:id", handlers.DeletePost)
 			protected.GET("/posts/:id/comments", handlers.GetPostComments)
 			protected.POST("/posts/:id/comments", handlers.AddPostComment)
@@ -50,12 +51,12 @@ func main() {
 
 			protected.GET("/clubs", handlers.GetClubs)
 			protected.POST("/clubs", handlers.CreateClub)
+			protected.PUT("/clubs/:id", handlers.UpdateClub)
 			protected.DELETE("/clubs/:id", handlers.DeleteClub)
 			protected.POST("/clubs/:id/membership", handlers.ToggleClubMembership)
 			protected.GET("/clubs/:id/members", handlers.GetClubMembers)
 			protected.GET("/clubs/:id/comments", handlers.GetClubComments)
-			protected.POST("/clubs/:id/comments", handlers.AddClubComment)
-			protected.PUT("/clubs/:id", handlers.UpdateClub)
+			protected.POST("/clubs/:id/comments", handlers.AddClubComment)			
 
 			protected.GET("/friends", handlers.GetFriends)
 			protected.GET("/users/:id/friends", handlers.GetUserFriends)

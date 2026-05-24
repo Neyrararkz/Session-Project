@@ -112,6 +112,16 @@ export default function Feed() {
     }
   };
 
+  const handleUpdatePost = (updatedPost) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === updatedPost.id) {
+        return updatedPost;
+      }
+
+      return post;
+    }));
+  };
+
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Вы уверены, что хотите удалить этот пост?')) return;
 
@@ -213,6 +223,7 @@ export default function Feed() {
               onDelete={handleDeletePost}
               onToggleLike={handleToggleLike}
               onCommentAdded={handleCommentAddedLocally}
+              onUpdate={handleUpdatePost}
             />
           ))
         )}

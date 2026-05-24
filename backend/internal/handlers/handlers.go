@@ -387,6 +387,79 @@ func CreatePost(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Пост создан!"})
 }
 
+func UpdatePost(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Неавторизован"})
+		return
+	}
+
+	postID := c.Param("id")
+
+	var input models.UpdatePostInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Заполните заголовок и текст поста"})
+		return
+	}
+
+	query := `
+		UPDATE posts
+		SET title = $1, content = $2, image_urls = $3
+		WHERE id = $4 AND user_id = $5
+	`
+
+	result, err := config.DB.Exec(query, input.Title, input.Content, pq.Array(input.ImageURLs), postID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Не удалось обновить пост", "error": err.Error()})
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		c.JSON(http.StatusForbidden, gin.H{"message": "У вас нет прав на редактирование этого поста или он не существует"})
+		return
+	}
+
+	selectQuery := `
+		SELECT 
+			p.id, p.user_id, u.name, u.surname, COALESCE(u.avatar_url, ''), 
+			p.title, p.content, COALESCE(p.image_urls, '{}'), p.created_at,
+			(SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
+			EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) as is_liked,
+			(SELECT COUNT(*) FROM post_comments WHERE post_id = p.id) as comments_count
+		FROM posts p
+		JOIN users u ON p.user_id = u.id
+		WHERE p.id = $2
+	`
+
+	var post models.Post
+
+	err = config.DB.QueryRow(selectQuery, userID, postID).Scan(
+		&post.ID,
+		&post.UserID,
+		&post.AuthorName,
+		&post.AuthorSurname,
+		&post.AuthorAvatar,
+		&post.Title,
+		&post.Content,
+		pq.Array(&post.ImageURLs),
+		&post.CreatedAt,
+		&post.LikesCount,
+		&post.IsLiked,
+		&post.CommentsCount,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Пост обновлен, но не удалось вернуть новые данные", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Пост обновлен",
+		"post":    post,
+	})
+}
+
 func DeletePost(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	postID := c.Param("id")
