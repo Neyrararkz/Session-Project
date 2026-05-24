@@ -23,7 +23,9 @@ export default function Login() {
         <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required className="form-input" />
         <input type="password" placeholder="Пароль" value={password} onChange={e => setPassword(e.target.value)} required className="form-input" />
         <button type="submit" className="btn btn-primary">Войти</button>
-        <Link to="/register">Нет аккаунта? Зарегистрироваться</Link>
+        <p className="auth-switch-text">
+          Еще нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+        </p>
       </form>
     </div>
   );

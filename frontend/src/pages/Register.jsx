@@ -29,7 +29,7 @@ export default function Register() {
         <input type="number" placeholder="Курс" min="1" max="4" required onChange={e => setForm({...form, course: parseInt(e.target.value)})} className="form-input" />
         <input type="text" placeholder="Направление" required onChange={e => setForm({...form, direction: e.target.value})} className="form-input" />
         <button type="submit" className="btn btn-success">Зарегистрироваться</button>
-        <p style={{ textAlign: 'center', marginTop: '1rem' }}>
+        <p className="auth-switch-text">
           Уже есть аккаунт? <Link to="/login">Войти</Link>
         </p>
       </form>

@@ -2559,3 +2559,497 @@ textarea.form-input {
     min-width: 0;
   }
 }
+
+
+
+:root {
+  --primary: #7166d8;
+  --primary-hover: #6257c7;
+  --primary-soft: #f2f0ff;
+  --primary-soft-strong: #e8e5fb;
+  --success: #7166d8;
+  --danger: #34323d;
+  --danger-soft: #f2f2f5;
+  --bg-main: #f8f7fc;
+  --bg-gray: #f4f3f8;
+  --surface-muted: #fbfaff;
+  --border: #e7e3f0;
+  --border-strong: #d8d3e5;
+  --text-main: #1f1b2d;
+  --text-muted: #6f687d;
+  --text-soft: #9a94a8;
+  --shadow-sm: 0 3px 12px rgba(48, 39, 89, 0.045);
+  --shadow-md: 0 12px 28px rgba(48, 39, 89, 0.08);
+}
+
+body {
+  font-weight: 400;
+}
+
+.page-title {
+  font-weight: 760;
+}
+
+.section-title,
+.card-title,
+.composer-title,
+.feed-heading,
+.profile-posts-heading,
+.news-title,
+.admin-users-section h3,
+.chat-settings-header h3,
+.chat-settings-members h4 {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.top-header-logo {
+  font-weight: 700;
+}
+
+.nav-link {
+  font-weight: 450;
+}
+
+.nav-link-active {
+  font-weight: 600;
+  color: var(--text-main);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.nav-link:hover {
+  color: var(--text-main);
+  background: #ffffff;
+}
+
+.form-label,
+.news-date,
+.chat-sidebar-title,
+.admin-stat-card span,
+.file-upload-label,
+.badge,
+.chat-list-title,
+.post-author-name,
+.post-comment-author,
+.admin-user-name,
+.chat-settings-member-main span,
+.profile-section-heading {
+  font-weight: 550;
+}
+
+.profile-name {
+  font-weight: 720;
+}
+
+.profile-dir {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.btn {
+  border: 1px solid var(--border-strong);
+  border-radius: 0.8rem;
+  padding: 0.64rem 0.9rem;
+  font-weight: 560;
+  font-size: 0.92rem;
+  box-shadow: none;
+}
+
+.btn:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-inline {
+  padding: 0.52rem 0.85rem;
+}
+
+.btn-primary,
+.btn-success {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover,
+.btn-success:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.btn-secondary,
+.btn-danger {
+  background: #ffffff;
+  color: var(--text-main);
+  border-color: var(--border-strong);
+}
+
+.btn-secondary:hover,
+.btn-danger:hover {
+  background: var(--surface-muted);
+  color: var(--text-main);
+  border-color: var(--border-strong);
+}
+
+.btn-icon,
+.btn-icon-danger {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.btn-icon:hover,
+.btn-icon-danger:hover {
+  color: var(--text-main);
+}
+
+.post-icon-action {
+  width: 32px;
+  height: 32px;
+  background: #ffffff;
+  border-color: var(--border);
+}
+
+.post-icon-action:hover,
+.post-icon-action-danger:hover {
+  background: var(--surface-muted);
+  border-color: var(--border-strong);
+  transform: none;
+}
+
+.post-icon-action img {
+  width: 15px;
+  height: 15px;
+}
+
+.nav-badge,
+.top-header-badge,
+.chat-unread-badge {
+  background: var(--text-main);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.form-input,
+.form-select,
+.search-input,
+.post-textarea,
+.admin-filter-select,
+.admin-role-select {
+  border: 1px solid var(--border);
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 0.78rem 1rem;
+  font-weight: 400;
+  box-shadow: none;
+}
+
+textarea.form-input,
+.post-textarea {
+  border-radius: 1rem;
+}
+
+.form-input:focus,
+.form-select:focus,
+.search-input:focus,
+.post-textarea:focus,
+.admin-filter-select:focus,
+.admin-role-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(113, 102, 216, 0.11);
+}
+
+.auth-container {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(113, 102, 216, 0.1), transparent 22rem),
+    linear-gradient(135deg, #ffffff 0%, #f7f5ff 100%);
+}
+
+.auth-card {
+  padding: 2.1rem;
+}
+
+.auth-title,
+.auth-card h2 {
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.auth-card .form-input {
+  margin-bottom: 0;
+}
+
+.auth-card .btn {
+  margin-top: 0.2rem;
+}
+
+.auth-card a,
+.auth-card p a {
+  display: inline;
+  color: var(--primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.auth-card a:hover,
+.auth-card p a:hover {
+  text-decoration: underline;
+}
+
+.auth-card > a,
+.auth-card p {
+  text-align: center;
+  margin: 0.3rem 0 0 0;
+  color: var(--text-muted);
+  font-size: 0.94rem;
+  font-weight: 400;
+}
+
+.post-actions-row {
+  gap: 1.1rem;
+}
+
+.post-action-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--text-muted);
+  border-radius: 0;
+  font-weight: 450;
+  font-size: 0.92rem;
+  gap: 0.42rem;
+}
+
+.post-action-button:hover {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-main);
+  transform: none;
+}
+
+.post-like-button-active {
+  background: transparent;
+  color: var(--text-main);
+  border-color: transparent;
+}
+
+.post-comments-button-active {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.post-action-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.post-like-button span {
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  transform: translateY(1px);
+}
+
+.post-action-chevron {
+  width: 17px;
+  height: 17px;
+}
+
+.like-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--text-muted);
+  font-weight: 450;
+}
+
+.like-btn:hover {
+  background: transparent;
+  color: var(--text-main);
+}
+
+.clubs-detail-back {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.clubs-detail-back:hover {
+  background: transparent;
+  color: var(--text-main);
+  border-color: transparent;
+}
+
+.post-comment-send-button,
+.chat-send-button {
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  box-shadow: none;
+}
+
+.post-comment-send-button:hover,
+.chat-send-button:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  transform: none;
+}
+
+.chat-group-avatar {
+  background: var(--primary);
+  font-weight: 600;
+}
+
+.msg-sender,
+.post-reply-button,
+.terminal-tag,
+.admin-btn,
+.chat-friend-checkbox,
+.badge {
+  font-weight: 500;
+}
+
+.news-edit-image-item button {
+  background: rgba(31, 27, 45, 0.82);
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.admin-stat-card strong {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.admin-quick-link span {
+  font-weight: 650;
+}
+
+.admin-user-card,
+.user-mini-card,
+.user-card,
+.friend-card {
+  background: #ffffff;
+}
+
+.card:hover,
+.club-card:hover,
+.admin-quick-link:hover,
+.user-mini-card:hover,
+.user-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.club-card:hover,
+.admin-quick-link:hover,
+.user-mini-card:hover,
+.user-card:hover {
+  transform: none;
+}
+
+.auth-switch-text {
+  text-align: center;
+  margin: 0.3rem 0 0 0;
+  color: var(--text-muted);
+  font-size: 0.94rem;
+}
+
+.top-header-icon {
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.top-header-icon:hover {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.top-header-svg-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.top-header-badge {
+  top: 0;
+  right: 0;
+}
+
+.admin-user-actions {
+  min-width: 175px;
+  gap: 0.5rem;
+}
+
+.admin-role-select {
+  height: 38px;
+  min-width: 140px;
+  max-width: 155px;
+  padding: 0 2.2rem 0 0.85rem;  
+  padding-left: 1.5rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 38px;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10L12 15L17 10' stroke='%236f687d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+  background-size: 14px 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.admin-role-select:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px rgba(113, 102, 216, 0.08);
+}
+
+.admin-user-actions .post-icon-action {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+}
+
+.nav-badge,
+.top-header-badge,
+.chat-unread-badge {
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.nav-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 0.36rem;
+  font-size: 0.72rem;
+}
+
+.top-header-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 0.32rem;
+  font-size: 0.68rem;
+}
+
+.chat-unread-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 0.36rem;
+  font-size: 0.72rem;
+}
