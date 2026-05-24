@@ -38,6 +38,11 @@ export const fetchClubComments = async (id) => { const res = await axiosInstance
 export const addClubComment = async (id, content, parentId = null) => { const res = await axiosInstance.post(`/clubs/${id}/comments`, { content, parent_id: parentId }); return res.data; };
 export const updateClub = async (id, data) => { const res = await axiosInstance.put(`/clubs/${id}`, data); return res.data; };
 
+export const fetchNews = async () => { const res = await axiosInstance.get('/news'); return res.data; }; 
+export const createNews = async (data) => { const res = await axiosInstance.post('/news', data); return res.data; }; 
+export const updateNews = async (id, data) => { const res = await axiosInstance.put(`/news/${id}`, data); return res.data; };
+export const deleteNews = async (id) => { const res = await axiosInstance.delete(`/news/${id}`); return res.data; };
+
 export const fetchFriends = async () => { const res = await axiosInstance.get('/friends'); return res.data; };
 export const fetchUserFriends = async (id) => { const res = await axiosInstance.get(`/users/${id}/friends`); return res.data; };
 export const fetchIncomingFriendRequests = async () => { const res = await axiosInstance.get('/friends/requests/incoming'); return res.data; };
@@ -55,6 +60,11 @@ export const updateChat = async (id, data) => { const res = await axiosInstance.
 export const fetchMessages = async (chatId) => { const res = await axiosInstance.get(`/chats/${chatId}/messages`); return res.data; };
 export const sendMessage = async (chatId, text) => { const res = await axiosInstance.post(`/chats/${chatId}/messages`, { text }); return res.data; };
 export const fetchUnreadMessagesCount = async () => { const res = await axiosInstance.get('/messages/unread-count'); return res.data.count; };
+
+export const fetchAdminStats = async () => { const res = await axiosInstance.get('/admin/stats'); return res.data; }; 
+export const fetchAdminUsers = async () => { const res = await axiosInstance.get('/admin/users'); return res.data; }; 
+export const updateUserRole = async (id, role) => { const res = await axiosInstance.put(`/admin/users/${id}/role`, { role }); return res.data; };
+export const deleteUserByAdmin = async (id) => { const res = await axiosInstance.delete(`/admin/users/${id}`); return res.data; };
 
 export const updateProfile = async (data) => { const res = await axiosInstance.put('/user/profile', data); return res.data; };
 
@@ -85,6 +95,10 @@ export const api = {
     addPostComment,
     toggleLike, 
     fetchClubs, 
+    fetchNews,
+    createNews,
+    updateNews,
+    deleteNews,
     getCurrentUser, 
     getUserById,
     getUserPosts,
@@ -113,4 +127,8 @@ export const api = {
     deleteFriendRequest,
     removeFriend,
     uploadImage,
+    fetchAdminStats,
+    fetchAdminUsers,
+    updateUserRole,
+    deleteUserByAdmin,
 };

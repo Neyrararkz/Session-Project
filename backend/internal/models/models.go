@@ -126,6 +126,27 @@ type UpdateClubInput struct {
 	ImageURL    string `json:"image_url" db:"image_url"`
 }
 
+type News struct {
+	ID        int       `json:"id"`
+	AuthorID  int       `json:"author_id"`
+	Title     string    `json:"title"`
+	Content   string    `json:"content"`
+	ImageURLs []string  `json:"image_urls"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type CreateNewsInput struct {
+	Title     string   `json:"title" binding:"required"`
+	Content   string   `json:"content" binding:"required"`
+	ImageURLs []string `json:"image_urls"`
+}
+
+type UpdateNewsInput struct {
+	Title     string   `json:"title" binding:"required"`
+	Content   string   `json:"content" binding:"required"`
+	ImageURLs []string `json:"image_urls"`
+}
+
 type FriendUser struct {
 	ID        int    `json:"id"`
 	Name      string `json:"name"`
@@ -197,4 +218,31 @@ type SendMessageInput struct {
 type CreateGroupChatInput struct {
 	Name      string `json:"name" binding:"required"`
 	MemberIDs []int  `json:"member_ids" binding:"required"`
+}
+
+type AdminStats struct {
+	UsersCount    int `json:"users_count"`
+	StudentsCount int `json:"students_count"`
+	TeachersCount int `json:"teachers_count"`
+	AdminsCount   int `json:"admins_count"`
+	PostsCount    int `json:"posts_count"`
+	ClubsCount    int `json:"clubs_count"`
+	NewsCount     int `json:"news_count"`
+	ChatsCount    int `json:"chats_count"`
+}
+
+type AdminUser struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	Surname   string `json:"surname"`
+	Email     string `json:"email"`
+	Group     string `json:"group"`
+	Course    int    `json:"course"`
+	Direction string `json:"direction"`
+	AvatarURL string `json:"avatar_url"`
+	Role      string `json:"role"`
+}
+
+type UpdateUserRoleInput struct {
+	Role string `json:"role" binding:"required"`
 }

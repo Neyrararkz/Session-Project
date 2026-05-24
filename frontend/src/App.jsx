@@ -10,6 +10,7 @@ import Profile from './pages/Profile';
 import Friends from './pages/Friends';
 import Chat from './pages/Chat';
 import Clubs from './pages/Clubs';
+import News from './pages/News';
 import Navigation from './pages/Navigation';
 import Admin from './pages/Admin';
 
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
             <Route path="/chats" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/clubs" element={<ProtectedRoute><Clubs /></ProtectedRoute>} />
+            <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
             <Route path="/navigation" element={<ProtectedRoute><Navigation /></ProtectedRoute>} />
             
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />

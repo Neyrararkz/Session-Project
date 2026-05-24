@@ -174,7 +174,7 @@ export default function Feed() {
 
           <div className="composer-actions">
             <label className="file-upload-label">
-              📷 Прикрепить фото (до 5)
+              <img src="/icons/photo.svg" alt="" /> Прикрепить фото (1–5)
               <input
                 type="file"
                 accept="image/*"

@@ -58,6 +58,11 @@ func main() {
 			protected.GET("/clubs/:id/comments", handlers.GetClubComments)
 			protected.POST("/clubs/:id/comments", handlers.AddClubComment)			
 
+			protected.GET("/news", handlers.GetNews)
+			protected.POST("/news", handlers.CreateNews)
+			protected.PUT("/news/:id", handlers.UpdateNews)
+			protected.DELETE("/news/:id", handlers.DeleteNews)
+
 			protected.GET("/friends", handlers.GetFriends)
 			protected.GET("/users/:id/friends", handlers.GetUserFriends)
 			protected.GET("/friends/requests/incoming", handlers.GetIncomingFriendRequests)
@@ -79,6 +84,11 @@ func main() {
 			protected.GET("/users/:id/posts", handlers.GetUserPosts)
 			protected.GET("/user/posts", handlers.GetUserPosts)
 			protected.PUT("/user/profile", handlers.UpdateProfile)
+
+			protected.GET("/admin/stats", handlers.GetAdminStats)
+			protected.GET("/admin/users", handlers.GetAdminUsers)
+			protected.PUT("/admin/users/:id/role", handlers.UpdateUserRole)
+			protected.DELETE("/admin/users/:id", handlers.DeleteUserByAdmin)
 		}
 	}
 

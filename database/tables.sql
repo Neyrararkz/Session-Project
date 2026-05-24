@@ -55,6 +55,15 @@
 --     parent_id INT REFERENCES club_comments(id) ON DELETE CASCADE
 -- );
 
+-- CREATE TABLE news (
+--     id SERIAL PRIMARY KEY,
+--     author_id INT REFERENCES users(id) ON DELETE SET NULL,
+--     title VARCHAR(255) NOT NULL,
+--     content TEXT NOT NULL,
+--     image_urls TEXT[] DEFAULT '{}',
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+
 -- CREATE TABLE friendships (
 --     id SERIAL PRIMARY KEY,
 --     requester_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

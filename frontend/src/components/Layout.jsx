@@ -92,10 +92,11 @@ export const Layout = ({ children }) => {
   if (!user) return <main className="main-content">{children}</main>;
 
   const menuItems = [
-    { path: '/', label: 'Лента новостей', icon: '/icons/feed.svg' },
+    { path: '/', label: 'Лента', icon: '/icons/feed.svg' },
     { path: '/friends', label: 'Друзья', icon: '/icons/friends.svg', badge: incomingCount },
     { path: '/chats', label: 'Сообщения', icon: '/icons/chat.svg', badge: unreadMessagesCount },
     { path: '/clubs', label: 'Клубы', icon: '/icons/clubs.svg' },
+    { path: '/news', label: 'Новости', icon: '/icons/news.svg' },
     { path: '/navigation', label: 'Помощник студента', icon: '/icons/navigation.svg' },
   ];
 

@@ -4,7 +4,7 @@
   --primary-soft: #f0eeff;
   --primary-soft-strong: #e5e0ff;
   --success: #22c55e;
-  --danger: #535353;  
+  --danger: #990000;  
   --danger-soft: #f0f0f0;
   --bg-main: #f7f6ff;
   --bg-gray: #f3f1fb;
@@ -2215,4 +2215,347 @@ textarea.form-input {
 
 .clubs-detail-back {
   margin-bottom: 1.5rem;
+}
+
+.news-page {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.news-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.news-page-subtitle {
+  color: var(--text-muted);
+  margin: -0.8rem 0 0 0;
+}
+
+.news-create-form {
+  margin-bottom: 1.5rem;
+}
+
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.news-card {
+  padding: 1.5rem;
+}
+
+.news-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.news-date {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.news-media {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 1.2rem;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+}
+
+.news-media-image {
+  max-width: 100%;
+  max-height: 460px;
+  object-fit: contain;
+  display: block;
+}
+
+.news-title {
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  margin: 0 0 0.75rem 0;
+  color: var(--text-main);
+}
+
+.news-content {
+  color: var(--text-muted);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.news-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+.news-edit-form .form-input {
+  background: #ffffff;
+  margin-bottom: 0;
+}
+
+.news-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.news-edit-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.75rem;
+}
+
+.news-edit-image-item {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #ffffff;
+}
+
+.news-edit-image-item img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+}
+
+.news-edit-image-item button {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(239, 68, 68, 0.9);
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+@media (max-width: 640px) {
+  .news-page-header {
+    flex-direction: column;
+  }
+
+  .news-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .news-form-actions .btn-inline {
+    width: 100%;
+  }
+}
+
+.admin-page {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.admin-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-page-subtitle {
+  color: var(--text-muted);
+  margin: -0.8rem 0 0 0;
+}
+
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-stat-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-stat-card span {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.admin-stat-card strong {
+  font-size: 1.65rem;
+  font-weight: 950;
+  color: var(--primary);
+  letter-spacing: -0.04em;
+}
+
+.admin-quick-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-quick-link {
+  text-decoration: none;
+  background: linear-gradient(135deg, #ffffff, var(--primary-soft));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-quick-link:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.admin-quick-link span {
+  display: block;
+  color: var(--text-main);
+  font-weight: 900;
+  margin-bottom: 0.25rem;
+}
+
+.admin-quick-link small {
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.admin-users-panel {
+  padding: 1.3rem;
+}
+
+.admin-users-toolbar {
+  display: grid;
+  grid-template-columns: 1fr 190px;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-search-input,
+.admin-filter-select,
+.admin-role-select {
+  margin-bottom: 0;
+}
+
+.admin-filter-select,
+.admin-role-select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  color: var(--text-main);
+  padding: 0.78rem 0.9rem;
+  outline: none;
+  font: inherit;
+  font-weight: 750;
+}
+
+.admin-users-section {
+  margin-top: 1.5rem;
+}
+
+.admin-users-section h3 {
+  margin: 0 0 0.85rem 0;
+  font-size: 1rem;
+  color: var(--text-main);
+  font-weight: 900;
+}
+
+.admin-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-user-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+}
+
+.admin-user-main {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+
+.admin-user-name {
+  display: block;
+  color: var(--text-main);
+  font-weight: 900;
+}
+
+.admin-user-meta {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  margin-top: 0.12rem;
+}
+
+.admin-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 220px;
+}
+
+.admin-role-select {
+  padding: 0.62rem 0.75rem;
+}
+
+@media (max-width: 760px) {
+  .admin-users-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-user-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-user-actions {
+    width: 100%;
+    min-width: 0;
+  }
 }
