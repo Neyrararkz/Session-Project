@@ -130,14 +130,14 @@ itstep-network/
 
 ## Документация
 
-* Архитектура: `docs/diagrams/architecture.png`
-* ERD и MongoDB schema: `docs/diagrams/erd.png`
-* CJM: `docs/diagrams/cjm.png`
-* User Flow: `docs/diagrams/user-flow.png`
-* Postman: `docs/postman/ITSTEP Social.postman_collection.json`
-* SQL: `database/tables.sql`
-* NoSQL structure: `database/nosql-structure.md`
-* MongoDB init: `database/mongodb_init.js`
+* [Архитектура](docs/diagrams/architecture.png)
+* [ERD и MongoDB schema](docs/diagrams/erd.png)
+* [CJM](docs/diagrams/cjm.png)
+* [User Flow](docs/diagrams/user-flow.png)
+* [Postman collection](docs/postman/ITSTEP-Social.postman_collection.json)
+* [SQL script](database/tables.sql)
+* [NoSQL structure](database/nosql-structure.md)
+* [MongoDB init script](database/mongodb_init.js)
 
 ## Базы данных
 
@@ -154,14 +154,3 @@ chats, messages
 ```
 
 Связь между PostgreSQL и MongoDB выполняется логически через id пользователей и клубов.
-
-## Deployment note
-
-Проект подготовлен для локального запуска и демонстрации.
-Деплой не выполнялся.
-
-## Author
-
-Session Project
-ITSTEP Social
-2026
