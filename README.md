@@ -130,10 +130,11 @@ itstep-network/
 
 ## Документация
 
-* [Архитектура](docs/diagrams/architecture.png)
-* [ERD и MongoDB schema](docs/diagrams/erd.png)
-* [CJM](docs/diagrams/cjm.png)
-* [User Flow](docs/diagrams/user-flow.png)
+* [Архитектура](docs/diagrams/Architecture-Scheme.png)
+* [ERD и MongoDB schema](docs/diagrams/ERD.png)
+* [CJM](docs/diagrams/CJM.png)
+* [User Flow](docs/diagrams/User-Flows.png)
+* [Figma](docs/diagrams/figma-link.md)
 * [Postman collection](docs/postman/ITSTEP-Social.postman_collection.json)
 * [SQL script](database/tables.sql)
 * [NoSQL structure](database/nosql-structure.md)
