@@ -157,9 +157,15 @@ chats, messages
 Связь между PostgreSQL и MongoDB выполняется логически через id пользователей и клубов.
 
 
+## Скриншоты интерфейса
+Лента
 <img width="1280" height="612" alt="image" src="https://github.com/user-attachments/assets/8945bfb9-162c-447d-893a-1a2cbb558918" />
+Профиль
 <img width="1920" height="920" alt="image" src="https://github.com/user-attachments/assets/6788e793-9aaa-4b42-a34b-81a9d2f8c69d" />
+Друзья
 <img width="1920" height="921" alt="image" src="https://github.com/user-attachments/assets/d08cad28-07da-4a4d-af73-102ee5078459" />
+Сообщения
 <img width="1920" height="919" alt="image" src="https://github.com/user-attachments/assets/ca204d60-ea65-4928-8b08-a13ce1297046" />
+Клубы
 <img width="1920" height="919" alt="image" src="https://github.com/user-attachments/assets/39a22324-d820-42c6-a4d1-5f355f7dd90a" />
 
