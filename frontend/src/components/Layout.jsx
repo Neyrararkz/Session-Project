@@ -1,11 +1,12 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import Avatar from './Avatar';
 
 export const Layout = ({ children }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();   
   const location = useLocation();
   const [incomingCount, setIncomingCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
@@ -145,6 +146,18 @@ export const Layout = ({ children }) => {
               </Link>
             ))}
           </nav>
+          <div className="sidebar-footer">
+            <button
+              type="button"
+              className="sidebar-logout-btn"
+              onClick={() => {
+                logout();
+                navigate('/login');
+              }}
+            >
+              Выйти
+            </button>
+          </div>
         </aside>
 
         <main className="main-content">

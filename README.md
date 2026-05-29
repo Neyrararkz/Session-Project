@@ -1,420 +1,23 @@
 # ITSTEP Social
 
-ITSTEP Social — децентрализованная web-система для внутренней коммуникации студентов, преподавателей и администрации IT STEP College.
+Децентрализованная web-платформа для колледжа ITSTEP: внутренняя социальная сеть, клубы, новости, друзья, чаты и справочный раздел для студентов.
 
-Проект объединяет элементы социальной сети, студенческого справочника, клубной системы, новостной панели и чатов. Система разработана как учебный session project с использованием React, Go, PostgreSQL и MongoDB.
+## Стек
 
-## Основная идея проекта
+| Слой          | Технологии                            |
+| ------------- | ------------------------------------- |
+| Frontend      | React, Vite, React Router, Axios, CSS |
+| Backend       | Go, Gin, JWT, bcrypt                  |
+| SQL           | PostgreSQL                            |
+| NoSQL         | MongoDB                               |
+| API testing   | Postman                               |
+| Design / Docs | Figma                                 |
 
-Цель ITSTEP Social — создать единую цифровую среду внутри колледжа, где пользователи могут:
+## Быстрый старт
 
-- публиковать посты;
-- взаимодействовать через лайки и комментарии;
-- добавлять друзей;
-- общаться в личных, групповых и клубных чатах;
-- вступать в студенческие клубы;
-- читать официальные новости колледжа;
-- пользоваться справочным разделом;
-- управлять системой через админ-панель.
+### 1. PostgreSQL
 
-## Роли пользователей
-
-В системе реализованы три роли:
-
-### Student
-
-Студент может:
-
-- просматривать ленту;
-- создавать, редактировать и удалять свои посты;
-- ставить лайки и писать комментарии;
-- добавлять друзей;
-- вступать в клубы;
-- пользоваться чатами;
-- редактировать свой профиль.
-
-### Teacher
-
-Преподаватель может:
-
-- просматривать ленту;
-- публиковать посты;
-- использовать друзей и чаты;
-- вступать в клубы;
-- редактировать свой профиль.
-
-### Admin
-
-Администратор может:
-
-- создавать, редактировать и удалять новости;
-- создавать, редактировать и удалять клубы;
-- просматривать админ-панель;
-- менять роли пользователей;
-- удалять пользователей;
-- просматривать статистику проекта.
-
-## Функциональность
-
-### Авторизация
-
-- регистрация;
-- вход в аккаунт;
-- JWT-аутентификация;
-- защищённые маршруты;
-- разделение доступа по ролям.
-
-### Профиль
-
-- просмотр своего и чужих профилей;
-- аватар пользователя;
-- информация о пользователе;
-- список друзей;
-- список клубов;
-- посты пользователя;
-- редактирование профиля.
-
-### Лента
-
-- создание постов;
-- редактирование своих постов;
-- удаление своих постов;
-- изображения в постах;
-- лайки;
-- комментарии;
-- ответы на комментарии;
-- поиск по постам;
-- переход на профиль автора.
-
-### Друзья
-
-- поиск пользователей;
-- отправка заявки в друзья;
-- принятие заявки;
-- удаление заявки;
-- удаление из друзей;
-- отображение входящих заявок;
-- счётчик входящих заявок.
-
-### Клубы
-
-- просмотр клубов;
-- поиск по клубам;
-- вступление в клуб;
-- выход из клуба;
-- участники клуба;
-- комментарии клуба;
-- редактирование и удаление клубов администратором;
-- автоматическое добавление пользователя в чат клуба после вступления.
-
-### Чаты
-
-- личные чаты;
-- групповые чаты;
-- клубные чаты;
-- сообщения через MongoDB;
-- счётчик непрочитанных сообщений;
-- поиск пользователей внутри чатов;
-- создание группового чата;
-- редактирование названия, описания и изображения группового/клубного чата.
-
-### Новости
-
-- отдельная страница официальных новостей;
-- просмотр новостей всеми пользователями;
-- создание новостей только администратором;
-- редактирование новостей администратором;
-- удаление новостей администратором;
-- поддержка изображений в новостях.
-
-### Админ-панель
-
-- статистика проекта;
-- количество пользователей, студентов, преподавателей, администраторов;
-- количество постов, клубов, новостей и чатов;
-- список пользователей;
-- поиск пользователей;
-- фильтр по ролям;
-- смена роли пользователя;
-- удаление пользователя;
-- быстрые переходы к новостям, клубам и ленте.
-
-## Технологии
-
-### Frontend
-
-- React
-- Vite
-- React Router
-- Axios
-- CSS
-
-### Backend
-
-- Go
-- Gin
-- JWT
-- bcrypt
-- PostgreSQL driver
-- MongoDB driver
-
-### Databases
-
-- PostgreSQL
-- MongoDB
-
-### Tools
-
-- Postman
-- Figma
-- GitHub
-
-## Архитектура проекта
-
-```txt
-ITSTEP Social
-│
-├── frontend
-│   ├── src
-│   │   ├── components
-│   │   ├── context
-│   │   ├── pages
-│   │   ├── api.js
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   │
-│   └── public
-│       └── icons
-│
-├── backend
-│   ├── cmd
-│   │   └── api
-│   │       └── main.go
-│   │
-│   ├── config
-│   ├── internal
-│   │   ├── handlers
-│   │   ├── middleware
-│   │   └── models
-│   │
-│   ├── utils
-│   └── uploads
-│
-├── database
-│   ├── tables.sql
-│   ├── nosql-structure.md
-│   └── mongodb_init.js
-│
-└── docs
-    ├── diagrams
-    └── postman
-
-
-## Backend architecture
-
-Backend написан на Go с использованием Gin.
-
-Основные части backend:
-
-```txt
-cmd/api/main.go
-```
-
-Точка входа приложения. Здесь запускается сервер, подключаются PostgreSQL и MongoDB, настраивается CORS, статическая папка uploads и регистрируются API-маршруты.
-
-```txt
-config
-```
-
-Папка для подключения и настройки баз данных и конфигурации проекта.
-
-```txt
-internal/handlers
-```
-
-HTTP handlers, разделённые по доменным областям:
-
-- auth;
-- users;
-- posts;
-- friends;
-- clubs;
-- news;
-- chats;
-- admin;
-- upload.
-
-Такое разделение помогает не хранить всю backend-логику в одном файле и делает проект удобнее для поддержки.
-
-```txt
-internal/middleware
-```
-
-Middleware для проверки JWT-токена и защиты приватных маршрутов.
-
-```txt
-internal/models
-```
-
-Структуры данных, которые используются в backend и API.
-
-```txt
-utils
-```
-
-Вспомогательные функции, включая генерацию и проверку JWT.
-
-## Frontend architecture
-
-Frontend написан на React с использованием Vite.
-
-Основные части frontend:
-
-```txt
-src/pages
-```
-
-Страницы приложения:
-
-- Login;
-- Register;
-- Feed;
-- Profile;
-- Friends;
-- Chat;
-- Clubs;
-- News;
-- Navigation;
-- Admin.
-
-```txt
-src/components
-```
-
-Переиспользуемые компоненты интерфейса, например Layout, Avatar, PostCard.
-
-```txt
-src/context
-```
-
-AuthContext для хранения текущего пользователя, авторизации и выхода из аккаунта.
-
-```txt
-src/api.js
-```
-
-Единый файл для всех запросов к backend API через Axios.
-
-```txt
-public/icons
-```
-
-SVG-иконки интерфейса.
-
-## Database design
-
-В проекте используются две базы данных: PostgreSQL и MongoDB.
-
-### PostgreSQL
-
-PostgreSQL хранит структурированные данные:
-
-- users;
-- posts;
-- post_comments;
-- post_likes;
-- clubs;
-- club_comments;
-- news;
-- friendships.
-
-PostgreSQL выбран для сущностей с чёткой структурой, связями, внешними ключами и ограничениями.
-
-### MongoDB
-
-MongoDB хранит коммуникационную часть проекта:
-
-- chats;
-- messages.
-
-MongoDB выбран для сообщений и чатов, потому что эти данные являются потоковыми, быстро растущими и удобно хранятся в виде документов.
-
-Связь между PostgreSQL и MongoDB выполняется логически через id пользователей и клубов. MongoDB не дублирует полные данные пользователей, а хранит только их идентификаторы.
-
-## SQL + NoSQL разделение
-
-```txt
-PostgreSQL:
-- users
-- posts
-- post_comments
-- post_likes
-- clubs
-- club_comments
-- news
-- friendships
-
-MongoDB:
-- chats
-- messages
-```
-
-Такое разделение позволяет хранить основную структурированную часть системы в SQL-базе, а гибкую и быстро растущую чат-систему — в NoSQL-базе.
-
-## API testing
-
-Для тестирования API используется Postman.
-
-Postman collection находится в папке:
-
-```txt
-docs/postman
-```
-
-Основные группы запросов:
-
-- Auth;
-- Posts;
-- Friends;
-- Clubs;
-- Chats;
-- News;
-- Admin.
-
-Для удобства в Postman используется environment с переменными:
-
-```txt
-base_url = http://localhost:8080/api/v1
-token = JWT обычного пользователя
-admin_token = JWT администратора
-post_id = id поста
-club_id = id клуба
-chat_id = id чата
-target_user_id = id другого пользователя
-```
-
-## Запуск проекта
-
-Перед запуском нужно установить:
-
-- Go;
-- Node.js;
-- PostgreSQL;
-- MongoDB;
-- Git.
-
-## 1. Клонирование проекта
-
-```bash
-git clone <your-repository-url>
-cd itstep-network
-```
-
-## 2. Подготовка PostgreSQL
-
-Создайте базу данных PostgreSQL.
-
-Пример:
+Создайте базу данных PostgreSQL:
 
 ```sql
 CREATE DATABASE itstep_network;
@@ -426,19 +29,11 @@ CREATE DATABASE itstep_network;
 database/tables.sql
 ```
 
-Его можно выполнить через pgAdmin или psql.
+Важно: если строки в `tables.sql` начинаются с `--`, их нужно раскомментировать перед выполнением.
 
-Пример через psql:
+### 2. MongoDB
 
-```bash
-psql -U postgres -d itstep_network -f database/tables.sql
-```
-
-Важно: если в `tables.sql` строки начинаются с `--`, их нужно раскомментировать перед выполнением, иначе PostgreSQL воспримет их как комментарии.
-
-## 3. Подготовка MongoDB
-
-MongoDB должна быть запущена локально.
+MongoDB используется для чатов и сообщений.
 
 По умолчанию backend подключается к:
 
@@ -452,213 +47,266 @@ Database:
 itstep
 ```
 
-Для создания коллекций и индексов можно выполнить файл:
-
-```txt
-database/mongodb_init.js
-```
-
-Пример:
+Для создания коллекций и индексов можно выполнить:
 
 ```bash
 mongosh < database/mongodb_init.js
 ```
 
-После этого в MongoDB Compass можно проверить database:
-
-```txt
-itstep
-```
-
-И коллекции:
+Коллекции:
 
 ```txt
 chats
 messages
 ```
 
-## 4. Запуск backend
-
-Перейдите в папку backend:
+### 3. Backend
 
 ```bash
 cd backend
-```
-
-Установите зависимости:
-
-```bash
 go mod tidy
-```
-
-Запустите сервер:
-
-```bash
 go run cmd/api/main.go
 ```
 
-После успешного запуска должно появиться сообщение:
-
-```txt
-Сервер запущен на :8080
-```
-
-Backend API будет доступен по адресу:
+API:
 
 ```txt
 http://localhost:8080/api/v1
 ```
 
-Загруженные изображения доступны из папки:
-
-```txt
-backend/uploads
-```
-
-по адресу:
+Uploads:
 
 ```txt
 http://localhost:8080/uploads
 ```
 
-## 5. Запуск frontend
-
-Откройте новый терминал и перейдите в папку frontend:
+### 4. Frontend
 
 ```bash
 cd frontend
-```
-
-Установите зависимости:
-
-```bash
 npm install
-```
-
-Запустите frontend:
-
-```bash
 npm run dev
 ```
 
-Frontend будет доступен по адресу:
+Сайт:
 
 ```txt
 http://localhost:5173
 ```
 
-## 6. Проверка запуска
+## Демо-аккаунты
 
-После запуска backend и frontend:
+Если в базе уже созданы тестовые пользователи, можно использовать их для демонстрации.
 
-1. Откройте `http://localhost:5173`.
-2. Зарегистрируйте пользователя.
-3. Войдите в аккаунт.
-4. Проверьте ленту, профиль, друзей, клубы, новости и чаты.
-5. Для проверки админ-функций войдите под пользователем с ролью `admin`.
+| Роль          | Email              | Пароль                |
+| ------------- | ------------------ | --------------------- |
+| Админ         | your_admin_email   | your_admin_password   |
+| Студент       | your_student_email | your_student_password |
+| Преподаватель | your_teacher_email | your_teacher_password |
 
-## Environment
+Если демо-аккаунтов нет, можно зарегистрировать студента через интерфейс, а роль администратора или преподавателя назначить через базу данных или админ-панель.
 
-Frontend использует API:
+## Функции по ТЗ
+
+* Регистрация / вход / JWT-аутентификация
+* Роли пользователей: student, teacher, admin
+* Профиль пользователя: аватар, био, группа, курс, направление
+* Просмотр своего и чужих профилей
+* Лента постов
+* CRUD собственных постов
+* Изображения в постах
+* Лайки и комментарии
+* Ответы на комментарии
+* Друзья: поиск пользователей, заявки, принятие, удаление
+* Счётчик входящих заявок
+* Личные чаты
+* Групповые чаты
+* Клубные чаты
+* Хранение чатов и сообщений в MongoDB
+* Счётчик непрочитанных сообщений
+* Клубы: карточки, вступление, выход, участники, обсуждения
+* Автоматическое добавление пользователя в чат клуба после вступления
+* Новости колледжа
+* CRUD новостей для администратора
+* Справочный раздел для студентов
+* Поиск по постам, пользователям и клубам
+* Админ-панель: статистика, пользователи, роли, удаление пользователей
+
+## Структура проекта
 
 ```txt
-http://localhost:8080/api/v1
+itstep-network/
+├── backend/              # Go + Gin API
+│   ├── cmd/
+│   │   └── api/
+│   │       └── main.go
+│   ├── config/           # PostgreSQL, MongoDB, config
+│   ├── internal/
+│   │   ├── handlers/     # auth, users, posts, friends, clubs, news, chats, admin, upload
+│   │   ├── middleware/   # JWT middleware
+│   │   └── models/       # backend models
+│   ├── utils/            # JWT utils
+│   └── uploads/          # uploaded images
+│
+├── frontend/             # React + Vite
+│   ├── public/
+│   │   └── icons/
+│   └── src/
+│       ├── components/
+│       ├── context/
+│       ├── pages/
+│       ├── api.js
+│       ├── App.jsx
+│       ├── main.jsx
+│       └── index.css
+│
+├── database/             # SQL and NoSQL structure
+│   ├── tables.sql
+│   ├── nosql-structure.md
+│   └── mongodb_init.js
+│
+└── docs/                 # ERD, architecture, Postman, CJM, User Flow
+    ├── diagrams/
+    └── postman/
 ```
 
-Если backend запускается на другом адресе, нужно изменить значение в файле:
+## Backend architecture
+
+Backend разделён по доменным handler-файлам:
 
 ```txt
-frontend/src/api.js
+auth
+users
+posts
+friends
+clubs
+news
+chats
+admin
+upload
 ```
 
-```js
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+Основные части backend:
+
+* `cmd/api/main.go` — точка входа, запуск сервера и регистрация маршрутов
+* `config` — подключение PostgreSQL и MongoDB
+* `internal/handlers` — обработчики API-запросов
+* `internal/middleware` — проверка JWT-токена
+* `internal/models` — структуры данных
+* `utils` — вспомогательные функции
+
+## Базы данных
+
+В проекте используются две базы данных.
+
+### PostgreSQL
+
+PostgreSQL хранит структурированные данные:
+
+* users
+* posts
+* post_comments
+* post_likes
+* clubs
+* club_comments
+* news
+* friendships
+
+PostgreSQL используется для сущностей с чёткими связями, внешними ключами и ограничениями.
+
+### MongoDB
+
+MongoDB хранит коммуникационную часть:
+
+* chats
+* messages
+
+MongoDB используется для сообщений и чатов, потому что эти данные быстро растут и удобно хранятся в виде документов.
+
+Связь между PostgreSQL и MongoDB выполняется логически через id пользователей и клубов.
+
+## Документация
+
+* Архитектурная схема: `docs/diagrams/architecture.png`
+* ERD и MongoDB schema: `docs/diagrams/erd.png`
+* CJM: `docs/diagrams/cjm.png`
+* User Flow: `docs/diagrams/user-flow.png`
+* Postman collection: `docs/postman/ITSTEP Social.postman_collection.json`
+* SQL script: `database/tables.sql`
+* NoSQL structure: `database/nosql-structure.md`
+* MongoDB init script: `database/mongodb_init.js`
+
+## Postman
+
+Для проверки API используется Postman collection.
+
+Основные группы запросов:
+
+* Auth
+* Posts
+* Friends
+* Clubs
+* Chats
+* News
+* Admin
+
+Environment variables:
+
+```txt
+base_url = http://localhost:8080/api/v1
+token = JWT обычного пользователя
+admin_token = JWT администратора
+post_id = id поста
+club_id = id клуба
+chat_id = id чата
+target_user_id = id другого пользователя
 ```
 
 ## Работа с изображениями
 
 Проект поддерживает загрузку изображений для:
 
-- аватаров пользователей;
-- постов;
-- клубов;
-- новостей;
-- групповых и клубных чатов.
+* аватаров пользователей
+* постов
+* клубов
+* новостей
+* групповых и клубных чатов
 
-Изображения сохраняются в папку:
+Файлы сохраняются в папку:
 
 ```txt
 backend/uploads
 ```
 
-## Documentation files
-
-Дополнительные материалы проекта находятся в папках `database` и `docs`.
+И доступны по адресу:
 
 ```txt
-database/tables.sql
+http://localhost:8080/uploads
 ```
 
-SQL-скрипт для создания таблиц PostgreSQL.
+## Защита проекта
 
-```txt
-database/nosql-structure.md
-```
+Проект демонстрирует:
 
-Описание MongoDB-структуры проекта.
-
-```txt
-database/mongodb_init.js
-```
-
-Скрипт для создания MongoDB-коллекций и индексов.
-
-```txt
-docs/diagrams/erd.png
-```
-
-ERD-диаграмма PostgreSQL и MongoDB-связей.
-
-```txt
-docs/diagrams/architecture.png
-```
-
-Архитектурная схема проекта.
-
-```txt
-docs/diagrams/user-flow.png
-```
-
-User Flow приложения.
-
-```txt
-docs/diagrams/cjm.png
-```
-
-Customer Journey Map.
-
-```txt
-docs/postman/ITSTEP Social.postman_collection.json
-```
-
-Postman collection для проверки API.
+* frontend architecture на React
+* backend API на Go + Gin
+* JWT-аутентификацию
+* роли пользователей
+* SQL + NoSQL разделение данных
+* CRUD для ключевых сущностей
+* работу с PostgreSQL
+* работу с MongoDB
+* Postman-тестирование API
+* ERD, архитектурную схему, CJM и User Flow
 
 ## Deployment note
 
 Проект подготовлен для локального запуска и демонстрации.
 
-Для production deployment можно использовать:
+Деплой не выполнялся, так как учебная версия использует локальные подключения к PostgreSQL, MongoDB и локальную папку `uploads`.
 
-- frontend: Vercel или Netlify;
-- backend: Render или Railway;
-- PostgreSQL: Supabase или Railway;
-- MongoDB: MongoDB Atlas.
+## Author
 
-В рамках учебной версии проект демонстрируется локально, так как backend использует локальное подключение к PostgreSQL, MongoDB и папку `uploads`.
-
-## Authors
-
-Session Project  
-ITSTEP Social  
+Session Project
+ITSTEP Social
 2026
-
